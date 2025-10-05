@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Metin Gönder ve Şifrele</title>
+</head>
+<body>
+  <h2>Metin Gönder (Backend'de şifreleyecek)</h2>
+
+  <label>Mesaj:</label><br/>
+  <textarea id="message" rows="6" cols="60"></textarea><br/><br/>
+
+  <label>Yöntem:</label>
+  <select id="method">
+    <option value="caesar">Sezar (Caesar)</option>
+    <option value="vigenere">Vigenère</option>
+    <option value="railfence">Rail Fence</option>
+  </select>
+
+  <label> / Anahtar (Sezar için shift sayı, Vigenère için kelime, Rail için ray sayısı):</label>
+  <input id="key" type="text" placeholder="örn: 3 veya anahtar veya 3" />
+
+  <br/><br/>
+  <button id="sendBtn">Gönder ve Şifrele</button>
+
+  <h3>Şifrelenmiş çıktı</h3>
+  <pre id="result"></pre>
+
+  <h3>Inbox (son mesajlar)</h3>
+  <button id="refresh">Yenile</button>
+  <pre id="inbox"></pre>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
