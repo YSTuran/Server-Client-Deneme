@@ -1,35 +1,141 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <title>Metin Gönder ve Şifrele</title>
+    <meta charset="UTF-8">
+    <title>Mesaj Şifreleme Uygulaması</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 500px;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+
+        input, select, textarea, button {
+            width: 100%;
+            margin-top: 5px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        button {
+            margin-top: 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .output {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        pre {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: Consolas, monospace;
+        }
+    </style>
 </head>
 <body>
-  <h2>Metin Gönder (Backend'de şifreleyecek)</h2>
+    <h1> Mesaj Şifreleme / Deşifreleme</h1>
 
-  <label>Mesaj:</label><br/>
-  <textarea id="message" rows="6" cols="60"></textarea><br/><br/>
+    <div class="container">
+        <label>Mesaj:</label>
+        <textarea id="message" rows="3" placeholder="Metni buraya yaz..."></textarea>
 
-  <label>Yöntem:</label>
-  <select id="method">
-    <option value="caesar">Sezar (Caesar)</option>
-    <option value="vigenere">Vigenère</option>
-    <option value="railfence">Rail Fence</option>
-  </select>
+        <label>Yöntem:</label>
+        <select id="method">
+            <option value="substitution">Substitution (Yerine Koyma)</option>
+            <option value="caesar">Caesar</option>
+            <option value="vigenere">Vigenere</option>
+            <option value="rail">Rail Fence</option>
+        </select>
 
-  <label> / Anahtar (Sezar için shift sayı, Vigenère için kelime, Rail için ray sayısı):</label>
-  <input id="key" type="text" placeholder="örn: 3 veya anahtar veya 3" />
+        <label>Anahtar (örnek: substitution için 26 harf, caesar için sayı):</label>
+        <input type="text" id="key" placeholder="örn: QWERTYUIOPASDFGHJKLZXCVBNM">
 
-  <br/><br/>
-  <button id="sendBtn">Gönder ve Şifrele</button>
+        <button onclick="sendMessage()">Gönder</button>
 
-  <h3>Şifrelenmiş çıktı</h3>
-  <pre id="result"></pre>
+        <div class="output" id="output" style="display:none;">
+            <h3>Sonuçlar:</h3>
+            <p><strong> Şifrelenmiş Metin:</strong></p>
+            <pre id="encryptedText"></pre>
+            <p><strong> Çözülmüş Metin:</strong></p>
+            <pre id="decryptedText"></pre>
+        </div>
+    </div>
 
-  <h3>Inbox (son mesajlar)</h3>
-  <button id="refresh">Yenile</button>
-  <pre id="inbox"></pre>
+    <script>
+        async function sendMessage() {
+            const message = document.getElementById('message').value.trim();
+            const method = document.getElementById('method').value;
+            const key = document.getElementById('key').value.trim();
 
-  <script src="/static/script.js"></script>
+            if (!message) {
+                alert("Lütfen bir mesaj girin.");
+                return;
+            }
+
+            const response = await fetch('/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    message,
+                    method,
+                    key,
+                    mode: 'encrypt'
+                })
+            });
+
+            const data = await response.json();
+            const outputDiv = document.getElementById('output');
+            const encryptedText = document.getElementById('encryptedText');
+            const decryptedText = document.getElementById('decryptedText');
+
+            outputDiv.style.display = 'block';
+
+            if (data.error) {
+                encryptedText.textContent = " Hata: " + data.error;
+                decryptedText.textContent = "";
+            } else {
+                
+                encryptedText.textContent = data.encrypted || data.result || "(boş)";
+                decryptedText.textContent = data.decrypted || data.reverse || "(boş)";
+            }
+        }
+    </script>
 </body>
 </html>
+
