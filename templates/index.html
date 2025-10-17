@@ -69,7 +69,7 @@
     </style>
 </head>
 <body>
-    <h1> Mesaj Şifreleme / Deşifreleme</h1>
+    <h1>Mesaj Şifreleme / Deşifreleme</h1>
 
     <div class="container">
         <label>Mesaj:</label>
@@ -81,23 +81,42 @@
             <option value="caesar">Caesar</option>
             <option value="vigenere">Vigenere</option>
             <option value="rail">Rail Fence</option>
+            <option value="hill">Hill Cipher</option>
         </select>
 
-        <label>Anahtar (örnek: substitution için 26 harf, caesar için sayı):</label>
-        <input type="text" id="key" placeholder="örn: QWERTYUIOPASDFGHJKLZXCVBNM">
+        <label>Anahtar:</label>
+        <input type="text" id="key" placeholder="Substitution: 26 harf, Caesar: sayı, Hill: 3,3,2,5">
 
         <button onclick="sendMessage()">Gönder</button>
 
         <div class="output" id="output" style="display:none;">
             <h3>Sonuçlar:</h3>
-            <p><strong> Şifrelenmiş Metin:</strong></p>
+            <p><strong>Şifrelenmiş Metin:</strong></p>
             <pre id="encryptedText"></pre>
-            <p><strong> Çözülmüş Metin:</strong></p>
+            <p><strong>Çözülmüş Metin:</strong></p>
             <pre id="decryptedText"></pre>
         </div>
     </div>
 
     <script>
+        const methodSelect = document.getElementById('method');
+        const keyInput = document.getElementById('key');
+
+        methodSelect.addEventListener('change', () => {
+            const method = methodSelect.value;
+            if(method === 'substitution') {
+                keyInput.placeholder = "26 harfli anahtar örn: QWERTYUIOPASDFGHJKLZXCVBNM";
+            } else if(method === 'caesar') {
+                keyInput.placeholder = "Sayı girin, örn: 3";
+            } else if(method === 'vigenere') {
+                keyInput.placeholder = "Anahtar kelime girin, örn: SECRET";
+            } else if(method === 'rail') {
+                keyInput.placeholder = "Ray sayısı girin, örn: 3";
+            } else if(method === 'hill') {
+                keyInput.placeholder = "Hill matris anahtarı, örn: 3,3,2,5 (2x2)";
+            }
+        });
+
         async function sendMessage() {
             const message = document.getElementById('message').value.trim();
             const method = document.getElementById('method').value;
@@ -127,10 +146,9 @@
             outputDiv.style.display = 'block';
 
             if (data.error) {
-                encryptedText.textContent = " Hata: " + data.error;
+                encryptedText.textContent = "Hata: " + data.error;
                 decryptedText.textContent = "";
             } else {
-                
                 encryptedText.textContent = data.encrypted || data.result || "(boş)";
                 decryptedText.textContent = data.decrypted || data.reverse || "(boş)";
             }
@@ -138,4 +156,3 @@
     </script>
 </body>
 </html>
-

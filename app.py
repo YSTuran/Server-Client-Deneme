@@ -1,10 +1,14 @@
 from flask import Flask, request, jsonify, render_template
 import socket
 import random
+import numpy as np
 from typing import List, Dict
 
 app = Flask(__name__)
 INBOX: List[Dict] = []
+
+
+# --------------------------- Şifreleme Fonksiyonları --------------------------- #
 
 def caesar_encrypt(plain: str, shift: int) -> str:
     result = []
@@ -16,6 +20,7 @@ def caesar_encrypt(plain: str, shift: int) -> str:
         else:
             result.append(ch)
     return ''.join(result)
+
 
 def caesar_decrypt(cipher: str, shift: int) -> str:
     return caesar_encrypt(cipher, -shift)
@@ -34,6 +39,7 @@ def vigenere_encrypt(plain: str, key: str) -> str:
         else:
             res.append(ch)
     return ''.join(res)
+
 
 def vigenere_decrypt(cipher: str, key: str) -> str:
     if not key:
@@ -61,6 +67,7 @@ def rail_fence_encrypt(plain: str, rails: int) -> str:
         if rail == 0 or rail == rails - 1:
             direction *= -1
     return ''.join(fence)
+
 
 def rail_fence_decrypt(cipher: str, rails: int) -> str:
     if rails <= 1:
@@ -92,6 +99,7 @@ def substitution_encrypt(plain: str, key: str) -> str:
     table = str.maketrans(alphabet + alphabet.upper(), key + key.upper())
     return plain.translate(table)
 
+
 def substitution_decrypt(cipher: str, key: str) -> str:
     alphabet = 'abcdefghijklmnopqrstuvwxyz'
     key = key.lower()
@@ -101,6 +109,48 @@ def substitution_decrypt(cipher: str, key: str) -> str:
     return cipher.translate(table)
 
 
+# --------------------------- Hill Cipher Fonksiyonları --------------------------- #
+
+def mod_inverse(a: int, m: int) -> int:
+    """Modüler tersini bulur"""
+    a = a % m
+    for x in range(1, m):
+        if (a * x) % m == 1:
+            return x
+    raise ValueError("Matrisin determinantı modüler ters alınamaz (det ≡ 0 mod 26)")
+
+
+def hill_encrypt(plain: str, key_matrix: List[List[int]]) -> str:
+    plain = plain.replace(" ", "").lower()
+    while len(plain) % len(key_matrix) != 0:
+        plain += 'x'  # eksikse x ile doldur
+
+    n = len(key_matrix)
+    result = ''
+    for i in range(0, len(plain), n):
+        block = [ord(ch) - ord('a') for ch in plain[i:i+n]]
+        cipher_block = np.dot(key_matrix, block) % 26
+        result += ''.join(chr(int(num) + ord('a')) for num in cipher_block)
+    return result
+
+
+def hill_decrypt(cipher: str, key_matrix: List[List[int]]) -> str:
+    n = len(key_matrix)
+    det = int(round(np.linalg.det(key_matrix))) % 26
+    det_inv = mod_inverse(det, 26)
+    key_matrix_inv = (
+        det_inv * np.round(det * np.linalg.inv(key_matrix)).astype(int)
+    ) % 26
+
+    result = ''
+    for i in range(0, len(cipher), n):
+        block = [ord(ch) - ord('a') for ch in cipher[i:i+n]]
+        plain_block = np.dot(key_matrix_inv, block) % 26
+        result += ''.join(chr(int(num) + ord('a')) for num in plain_block)
+    return result
+
+
+# --------------------------- Flask Rotaları --------------------------- #
 
 @app.route('/')
 def index():
@@ -119,19 +169,41 @@ def send():
         if method == 'caesar':
             shift = int(key) if str(key).isdigit() else 3
             result = caesar_encrypt(message, shift) if mode == 'encrypt' else caesar_decrypt(message, shift)
-            reverse = caesar_decrypt(result, shift) if mode == 'encrypt' else caesar_encrypt(result, shift)         
+            reverse = caesar_decrypt(result, shift) if mode == 'encrypt' else caesar_encrypt(result, shift)
+
         elif method == 'vigenere':
             result = vigenere_encrypt(message, key) if mode == 'encrypt' else vigenere_decrypt(message, key)
             reverse = vigenere_decrypt(result, key) if mode == 'encrypt' else vigenere_encrypt(result, key)
+
         elif method in ['rail', 'railfence', 'rail-fence']:
             rails = int(key) if str(key).isdigit() and int(key) > 0 else 3
             result = rail_fence_encrypt(message, rails) if mode == 'encrypt' else rail_fence_decrypt(message, rails)
             reverse = rail_fence_decrypt(result, rails) if mode == 'encrypt' else rail_fence_encrypt(result, rails)
+
         elif method == 'substitution':
             encrypted = substitution_encrypt(message, key)
             decrypted = substitution_decrypt(encrypted, key)
             INBOX.append({"plain": message, "encrypted": encrypted, "decrypted": decrypted, "method": "substitution", "key": key})
             return jsonify({"encrypted": encrypted, "decrypted": decrypted, "method": "substitution"})
+
+        elif method == 'hill':
+            # Örnek: key = "3,3,2,5" => [[3,3],[2,5]]
+            try:
+                key_numbers = [int(x) for x in key.split(',')]
+                size = int(len(key_numbers) ** 0.5)
+                if size * size != len(key_numbers):
+                    raise ValueError("Anahtar kare matris olmalı (örneğin 2x2 = 4 sayı)")
+                key_matrix = np.array(key_numbers).reshape(size, size)
+            except:
+                raise ValueError("Anahtar formatı hatalı. Örnek: '3,3,2,5' (2x2 matris için)")
+
+            if mode == 'encrypt':
+                result = hill_encrypt(message, key_matrix)
+                reverse = hill_decrypt(result, key_matrix)
+            else:
+                result = hill_decrypt(message, key_matrix)
+                reverse = hill_encrypt(result, key_matrix)
+
         else:
             return jsonify({"error": "Bilinmeyen yöntem"}), 400
 
@@ -144,8 +216,6 @@ def send():
 
 if __name__ == '__main__':
     local_ip = socket.gethostbyname(socket.gethostname())
-
     port = random.randint(5000, 9000)
-
     print(f"Uygulama {local_ip}:{port} adresinde çalışıyor...")
     app.run(debug=True, host=local_ip, port=port)
