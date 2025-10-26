@@ -8,8 +8,6 @@ app = Flask(__name__)
 INBOX: List[Dict] = []
 
 
-# --------------------------- Şifreleme Fonksiyonları --------------------------- #
-
 def caesar_encrypt(plain: str, shift: int) -> str:
     result = []
     for ch in plain:
@@ -21,7 +19,6 @@ def caesar_encrypt(plain: str, shift: int) -> str:
             result.append(ch)
     return ''.join(result)
 
-
 def caesar_decrypt(cipher: str, shift: int) -> str:
     return caesar_encrypt(cipher, -shift)
 
@@ -31,7 +28,9 @@ def vigenere_encrypt(plain: str, key: str) -> str:
         return plain
     res, j = [], 0
     for ch in plain:
-        if ch.isalpha():
+        if ch == ' ':
+            res.append('*')
+        elif ch.isalpha():
             shift = ord(key[j % len(key)].lower()) - ord('a')
             base = ord('a') if ch.islower() else ord('A')
             res.append(chr((ord(ch) - base + shift) % 26 + base))
@@ -40,13 +39,14 @@ def vigenere_encrypt(plain: str, key: str) -> str:
             res.append(ch)
     return ''.join(res)
 
-
 def vigenere_decrypt(cipher: str, key: str) -> str:
     if not key:
         return cipher
     res, j = [], 0
     for ch in cipher:
-        if ch.isalpha():
+        if ch == '*':
+            res.append(' ')
+        elif ch.isalpha():
             shift = ord(key[j % len(key)].lower()) - ord('a')
             base = ord('a') if ch.islower() else ord('A')
             res.append(chr((ord(ch) - base - shift) % 26 + base))
@@ -57,6 +57,7 @@ def vigenere_decrypt(cipher: str, key: str) -> str:
 
 
 def rail_fence_encrypt(plain: str, rails: int) -> str:
+    plain = plain.replace(' ', '*')
     if rails <= 1:
         return plain
     fence = [''] * rails
@@ -67,7 +68,6 @@ def rail_fence_encrypt(plain: str, rails: int) -> str:
         if rail == 0 or rail == rails - 1:
             direction *= -1
     return ''.join(fence)
-
 
 def rail_fence_decrypt(cipher: str, rails: int) -> str:
     if rails <= 1:
@@ -88,7 +88,7 @@ def rail_fence_decrypt(cipher: str, rails: int) -> str:
     for i in range(len(cipher)):
         res += fence[pattern[i]][0]
         fence[pattern[i]] = fence[pattern[i]][1:]
-    return res
+    return res.replace('*', ' ')
 
 
 def substitution_encrypt(plain: str, key: str) -> str:
@@ -99,7 +99,6 @@ def substitution_encrypt(plain: str, key: str) -> str:
     table = str.maketrans(alphabet + alphabet.upper(), key + key.upper())
     return plain.translate(table)
 
-
 def substitution_decrypt(cipher: str, key: str) -> str:
     alphabet = 'abcdefghijklmnopqrstuvwxyz'
     key = key.lower()
@@ -109,22 +108,17 @@ def substitution_decrypt(cipher: str, key: str) -> str:
     return cipher.translate(table)
 
 
-# --------------------------- Hill Cipher Fonksiyonları --------------------------- #
-
 def mod_inverse(a: int, m: int) -> int:
-    """Modüler tersini bulur"""
     a = a % m
     for x in range(1, m):
         if (a * x) % m == 1:
             return x
     raise ValueError("Matrisin determinantı modüler ters alınamaz (det ≡ 0 mod 26)")
 
-
 def hill_encrypt(plain: str, key_matrix: List[List[int]]) -> str:
     plain = plain.replace(" ", "").lower()
     while len(plain) % len(key_matrix) != 0:
-        plain += 'x'  # eksikse x ile doldur
-
+        plain += 'x'
     n = len(key_matrix)
     result = ''
     for i in range(0, len(plain), n):
@@ -133,15 +127,11 @@ def hill_encrypt(plain: str, key_matrix: List[List[int]]) -> str:
         result += ''.join(chr(int(num) + ord('a')) for num in cipher_block)
     return result
 
-
 def hill_decrypt(cipher: str, key_matrix: List[List[int]]) -> str:
     n = len(key_matrix)
     det = int(round(np.linalg.det(key_matrix))) % 26
     det_inv = mod_inverse(det, 26)
-    key_matrix_inv = (
-        det_inv * np.round(det * np.linalg.inv(key_matrix)).astype(int)
-    ) % 26
-
+    key_matrix_inv = (det_inv * np.round(det * np.linalg.inv(key_matrix)).astype(int)) % 26
     result = ''
     for i in range(0, len(cipher), n):
         block = [ord(ch) - ord('a') for ch in cipher[i:i+n]]
@@ -150,12 +140,83 @@ def hill_decrypt(cipher: str, key_matrix: List[List[int]]) -> str:
     return result
 
 
-# --------------------------- Flask Rotaları --------------------------- #
+def polybius_encrypt(plain: str) -> str:
+    square = [['A','B','C','D','E'],
+              ['F','G','H','I','K'],
+              ['L','M','N','O','P'],
+              ['Q','R','S','T','U'],
+              ['V','W','X','Y','Z']]
+    result = []
+    for ch in plain.upper():
+        if ch == ' ':
+            result.append('*')
+        elif ch == 'J': ch = 'I'
+        found = False
+        for i in range(5):
+            for j in range(5):
+                if square[i][j] == ch:
+                    result.append(f"{i+1}{j+1}")
+                    found = True
+                    break
+            if found: break
+    return ' '.join(result)
+
+def polybius_decrypt(cipher: str) -> str:
+    square = [['A','B','C','D','E'],
+              ['F','G','H','I','K'],
+              ['L','M','N','O','P'],
+              ['Q','R','S','T','U'],
+              ['V','W','X','Y','Z']]
+    result = ''
+    cipher = cipher.replace(' ', '')
+    i = 0
+    while i < len(cipher):
+        if cipher[i] == '*':
+            result += ' '
+            i += 1
+        else:
+            row, col = int(cipher[i]) - 1, int(cipher[i+1]) - 1
+            result += square[row][col]
+            i += 2
+    return result
+
+
+def columnar_encrypt(plain: str, key: str) -> str:
+    plain = plain.replace(' ', '*')
+    key_order = sorted([(ch, i) for i, ch in enumerate(key)])
+    n_cols = len(key)
+    n_rows = int(np.ceil(len(plain) / n_cols))
+    matrix = [['*'] * n_cols for _ in range(n_rows)]
+    k = 0
+    for i in range(n_rows):
+        for j in range(n_cols):
+            if k < len(plain):
+                matrix[i][j] = plain[k]
+                k += 1
+    result = ''
+    for _, j in key_order:
+        for i in range(n_rows):
+            result += matrix[i][j]
+    return result
+
+def columnar_decrypt(cipher: str, key: str) -> str:
+    n_cols = len(key)
+    n_rows = int(np.ceil(len(cipher) / n_cols))
+    key_order = sorted([(ch, i) for i, ch in enumerate(key)])
+    matrix = [[''] * n_cols for _ in range(n_rows)]
+    k = 0
+    for _, j in key_order:
+        for i in range(n_rows):
+            if k < len(cipher):
+                matrix[i][j] = cipher[k]
+                k += 1
+    result = ''.join(matrix[i][j] for i in range(n_rows) for j in range(n_cols))
+    return result.replace('*', ' ')
+
 
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 @app.route('/send', methods=['POST'])
 def send():
@@ -187,22 +248,25 @@ def send():
             return jsonify({"encrypted": encrypted, "decrypted": decrypted, "method": "substitution"})
 
         elif method == 'hill':
-            # Örnek: key = "3,3,2,5" => [[3,3],[2,5]]
-            try:
-                key_numbers = [int(x) for x in key.split(',')]
-                size = int(len(key_numbers) ** 0.5)
-                if size * size != len(key_numbers):
-                    raise ValueError("Anahtar kare matris olmalı (örneğin 2x2 = 4 sayı)")
-                key_matrix = np.array(key_numbers).reshape(size, size)
-            except:
-                raise ValueError("Anahtar formatı hatalı. Örnek: '3,3,2,5' (2x2 matris için)")
-
+            key_numbers = [int(x) for x in key.split(',')]
+            size = int(len(key_numbers) ** 0.5)
+            if size * size != len(key_numbers):
+                raise ValueError("Anahtar kare matris olmalı")
+            key_matrix = np.array(key_numbers).reshape(size, size)
             if mode == 'encrypt':
                 result = hill_encrypt(message, key_matrix)
                 reverse = hill_decrypt(result, key_matrix)
             else:
                 result = hill_decrypt(message, key_matrix)
                 reverse = hill_encrypt(result, key_matrix)
+
+        elif method == 'polybius':
+            result = polybius_encrypt(message) if mode == 'encrypt' else polybius_decrypt(message)
+            reverse = polybius_decrypt(result) if mode == 'encrypt' else polybius_encrypt(result)
+
+        elif method in ['columnar', 'columnar transposition']:
+            result = columnar_encrypt(message, key) if mode == 'encrypt' else columnar_decrypt(message, key)
+            reverse = columnar_decrypt(result, key) if mode == 'encrypt' else columnar_encrypt(result, key)
 
         else:
             return jsonify({"error": "Bilinmeyen yöntem"}), 400
