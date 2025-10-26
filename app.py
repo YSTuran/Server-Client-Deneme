@@ -15,13 +15,24 @@ def caesar_encrypt(plain: str, shift: int) -> str:
             result.append(chr((ord(ch) - ord('a') + shift) % 26 + ord('a')))
         elif 'A' <= ch <= 'Z':
             result.append(chr((ord(ch) - ord('A') + shift) % 26 + ord('A')))
+        elif ch == ' ':
+            result.append('*')
         else:
             result.append(ch)
     return ''.join(result)
 
 def caesar_decrypt(cipher: str, shift: int) -> str:
-    return caesar_encrypt(cipher, -shift)
-
+    result = []
+    for ch in cipher:
+        if 'a' <= ch <= 'z':
+            result.append(chr((ord(ch) - ord('a') - shift) % 26 + ord('a')))
+        elif 'A' <= ch <= 'Z':
+            result.append(chr((ord(ch) - ord('A') - shift) % 26 + ord('A')))
+        elif ch == '*':
+            result.append(' ')
+        else:
+            result.append(ch)
+    return ''.join(result)
 
 def vigenere_encrypt(plain: str, key: str) -> str:
     if not key:
@@ -31,9 +42,11 @@ def vigenere_encrypt(plain: str, key: str) -> str:
         if ch == ' ':
             res.append('*')
         elif ch.isalpha():
-            shift = ord(key[j % len(key)].lower()) - ord('a')
-            base = ord('a') if ch.islower() else ord('A')
-            res.append(chr((ord(ch) - base + shift) % 26 + base))
+            shift = ord(key[j % len(key)])
+            if ch.isupper():
+                res.append(chr((ord(ch) - 65 + (shift - 65 if key[j % len(key)].isupper() else shift - 97)) % 26 + 65))
+            else:
+                res.append(chr((ord(ch) - 97 + (shift - 65 if key[j % len(key)].isupper() else shift - 97)) % 26 + 97))
             j += 1
         else:
             res.append(ch)
@@ -47,14 +60,15 @@ def vigenere_decrypt(cipher: str, key: str) -> str:
         if ch == '*':
             res.append(' ')
         elif ch.isalpha():
-            shift = ord(key[j % len(key)].lower()) - ord('a')
-            base = ord('a') if ch.islower() else ord('A')
-            res.append(chr((ord(ch) - base - shift) % 26 + base))
+            shift = ord(key[j % len(key)])
+            if ch.isupper():
+                res.append(chr((ord(ch) - 65 - (shift - 65 if key[j % len(key)].isupper() else shift - 97)) % 26 + 65))
+            else:
+                res.append(chr((ord(ch) - 97 - (shift - 65 if key[j % len(key)].isupper() else shift - 97)) % 26 + 97))
             j += 1
         else:
             res.append(ch)
     return ''.join(res)
-
 
 def rail_fence_encrypt(plain: str, rails: int) -> str:
     plain = plain.replace(' ', '*')
@@ -90,30 +104,30 @@ def rail_fence_decrypt(cipher: str, rails: int) -> str:
         fence[pattern[i]] = fence[pattern[i]][1:]
     return res.replace('*', ' ')
 
-
 def substitution_encrypt(plain: str, key: str) -> str:
-    alphabet = 'abcdefghijklmnopqrstuvwxyz'
-    key = key.lower()
-    if len(key) != 26 or len(set(key)) != 26:
+    alphabet_lower = 'abcdefghijklmnopqrstuvwxyz'
+    alphabet_upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    if len(key) != 26 or len(set(key.lower())) != 26:
         raise ValueError("Anahtar 26 harf içermeli ve tekrarsız olmalı")
-    table = str.maketrans(alphabet + alphabet.upper(), key + key.upper())
-    return plain.translate(table)
+    table = str.maketrans(alphabet_lower + alphabet_upper, key.lower() + key.upper())
+    text = plain.replace(' ', '*')
+    return text.translate(table)
 
 def substitution_decrypt(cipher: str, key: str) -> str:
-    alphabet = 'abcdefghijklmnopqrstuvwxyz'
-    key = key.lower()
-    if len(key) != 26 or len(set(key)) != 26:
+    alphabet_lower = 'abcdefghijklmnopqrstuvwxyz'
+    alphabet_upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    if len(key) != 26 or len(set(key.lower())) != 26:
         raise ValueError("Anahtar 26 harf içermeli ve tekrarsız olmalı")
-    table = str.maketrans(key + key.upper(), alphabet + alphabet.upper())
-    return cipher.translate(table)
-
+    table = str.maketrans(key.lower() + key.upper(), alphabet_lower + alphabet_upper)
+    text = cipher.translate(table)
+    return text.replace('*', ' ')
 
 def mod_inverse(a: int, m: int) -> int:
     a = a % m
     for x in range(1, m):
         if (a * x) % m == 1:
             return x
-    raise ValueError("Matrisin determinantı modüler ters alınamaz (det ≡ 0 mod 26)")
+    raise ValueError("Matrisin determinantı modüler ters alınamaz")
 
 def hill_encrypt(plain: str, key_matrix: List[List[int]]) -> str:
     plain = plain.replace(" ", "").lower()
@@ -139,7 +153,6 @@ def hill_decrypt(cipher: str, key_matrix: List[List[int]]) -> str:
         result += ''.join(chr(int(num) + ord('a')) for num in plain_block)
     return result
 
-
 def polybius_encrypt(plain: str) -> str:
     square = [['A','B','C','D','E'],
               ['F','G','H','I','K'],
@@ -150,7 +163,8 @@ def polybius_encrypt(plain: str) -> str:
     for ch in plain.upper():
         if ch == ' ':
             result.append('*')
-        elif ch == 'J': ch = 'I'
+        elif ch == 'J': 
+            ch = 'I'
         found = False
         for i in range(5):
             for j in range(5):
@@ -179,7 +193,6 @@ def polybius_decrypt(cipher: str) -> str:
             result += square[row][col]
             i += 2
     return result
-
 
 def columnar_encrypt(plain: str, key: str) -> str:
     plain = plain.replace(' ', '*')
@@ -214,6 +227,7 @@ def columnar_decrypt(cipher: str, key: str) -> str:
     return result.replace('*', ' ')
 
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -226,26 +240,43 @@ def send():
     key = data.get('key', '')
     mode = (data.get('mode') or 'encrypt').lower()
 
+    result = ""
+    reverse = ""
+
     try:
         if method == 'caesar':
             shift = int(key) if str(key).isdigit() else 3
-            result = caesar_encrypt(message, shift) if mode == 'encrypt' else caesar_decrypt(message, shift)
-            reverse = caesar_decrypt(result, shift) if mode == 'encrypt' else caesar_encrypt(result, shift)
+            if mode == 'encrypt':
+                result = caesar_encrypt(message, shift)
+                reverse = caesar_decrypt(result, shift)
+            else:
+                result = caesar_decrypt(message, shift)
+                reverse = caesar_encrypt(result, shift)
 
         elif method == 'vigenere':
-            result = vigenere_encrypt(message, key) if mode == 'encrypt' else vigenere_decrypt(message, key)
-            reverse = vigenere_decrypt(result, key) if mode == 'encrypt' else vigenere_encrypt(result, key)
+            if mode == 'encrypt':
+                result = vigenere_encrypt(message, key)
+                reverse = vigenere_decrypt(result, key)
+            else:
+                result = vigenere_decrypt(message, key)
+                reverse = vigenere_encrypt(result, key)
 
         elif method in ['rail', 'railfence', 'rail-fence']:
             rails = int(key) if str(key).isdigit() and int(key) > 0 else 3
-            result = rail_fence_encrypt(message, rails) if mode == 'encrypt' else rail_fence_decrypt(message, rails)
-            reverse = rail_fence_decrypt(result, rails) if mode == 'encrypt' else rail_fence_encrypt(result, rails)
+            if mode == 'encrypt':
+                result = rail_fence_encrypt(message, rails)
+                reverse = rail_fence_decrypt(result, rails)
+            else:
+                result = rail_fence_decrypt(message, rails)
+                reverse = rail_fence_encrypt(result, rails)
 
         elif method == 'substitution':
-            encrypted = substitution_encrypt(message, key)
-            decrypted = substitution_decrypt(encrypted, key)
-            INBOX.append({"plain": message, "encrypted": encrypted, "decrypted": decrypted, "method": "substitution", "key": key})
-            return jsonify({"encrypted": encrypted, "decrypted": decrypted, "method": "substitution"})
+            if mode == 'encrypt':
+                result = substitution_encrypt(message, key)
+                reverse = substitution_decrypt(result, key)
+            else:
+                result = substitution_decrypt(message, key)
+                reverse = substitution_encrypt(result, key)
 
         elif method == 'hill':
             key_numbers = [int(x) for x in key.split(',')]
@@ -261,21 +292,63 @@ def send():
                 reverse = hill_encrypt(result, key_matrix)
 
         elif method == 'polybius':
-            result = polybius_encrypt(message) if mode == 'encrypt' else polybius_decrypt(message)
-            reverse = polybius_decrypt(result) if mode == 'encrypt' else polybius_encrypt(result)
+            if mode == 'encrypt':
+                result = polybius_encrypt(message)
+                reverse = polybius_decrypt(result)
+            else:
+                result = polybius_decrypt(message)
+                reverse = polybius_encrypt(result)
 
         elif method in ['columnar', 'columnar transposition']:
-            result = columnar_encrypt(message, key) if mode == 'encrypt' else columnar_decrypt(message, key)
-            reverse = columnar_decrypt(result, key) if mode == 'encrypt' else columnar_encrypt(result, key)
+            if mode == 'encrypt':
+                result = columnar_encrypt(message, key)
+                reverse = columnar_decrypt(result, key)
+            else:
+                result = columnar_decrypt(message, key)
+                reverse = columnar_encrypt(result, key)
 
         else:
             return jsonify({"error": "Bilinmeyen yöntem"}), 400
 
-        INBOX.append({"plain": message, "result": result, "reverse": reverse, "method": method, "mode": mode, "key": key})
+        INBOX.append({
+            "plain": message,
+            "result": result,
+            "reverse": reverse,
+            "method": method,
+            "mode": mode,
+            "key": key
+        })
+
         return jsonify({"result": result, "reverse": reverse})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+
+@app.route('/caesar')
+def caesar():
+    return render_template('caesar.html')
+
+@app.route('/railfence')
+def railfence():
+    return render_template('railfence.html')
+
+@app.route('/substitution')
+def substitution():
+    return render_template('substitution.html')
+
+@app.route('/hill')
+def hill():
+    return render_template('hill.html')
+
+@app.route('/polybius')
+def polybius():
+    return render_template('polybius.html')
+
+@app.route('/columnar')
+def columnar():
+    return render_template('columnar.html')
 
 
 if __name__ == '__main__':

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Hill Şifreleme</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 30px; }
+        h1 { color: #2c3e50; }
+        .container { background: #fff; border-radius: 12px; padding: 20px 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 500px; }
+        label { font-weight: bold; display: block; margin-top: 10px; }
+        input, textarea, button { width: 100%; margin-top: 5px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+        button { margin-top: 15px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .output { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; }
+        pre { background: #e9ecef; padding: 10px; border-radius: 8px; font-family: Consolas, monospace; }
+        .back { margin-top: 20px; display: block; text-align: center; }
+        .back a { text-decoration: none; color: #007bff; font-weight: bold; }
+        .back a:hover { color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>Hill Şifreleme</h1>
+    <div class="container">
+        <label>Mesaj:</label>
+        <textarea id="message" rows="3" placeholder="Metni buraya yaz..."></textarea>
+        <label>Anahtar (örn: 3,3,2,5):</label>
+        <input type="text" id="key" placeholder="Kare matris anahtar">
+        <button onclick="sendMessage()">Gönder</button>
+        <div class="output" id="output" style="display:none;">
+            <h3>Sonuçlar:</h3>
+            <p><strong>Şifrelenmiş Metin:</strong></p>
+            <pre id="encryptedText"></pre>
+            <p><strong>Çözülmüş Metin:</strong></p>
+            <pre id="decryptedText"></pre>
+        </div>
+        <div class="back"><a href="{{ url_for('index') }}">← Ana Menüye Dön</a></div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const message = document.getElementById('message').value.trim();
+            const key = document.getElementById('key').value.trim();
+            if(!message){ alert("Lütfen bir mesaj girin."); return; }
+
+            const response = await fetch('/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ message, method: 'hill', key, mode: 'encrypt' })
+            });
+
+            const data = await response.json();
+            const outputDiv = document.getElementById('output');
+            const encryptedText = document.getElementById('encryptedText');
+            const decryptedText = document.getElementById('decryptedText');
+
+            outputDiv.style.display = 'block';
+            if(data.error){
+                encryptedText.textContent = "Hata: " + data.error;
+                decryptedText.textContent = "";
+            } else {
+                encryptedText.textContent = data.result || "(boş)";
+                decryptedText.textContent = data.reverse || "(boş)";
+            }
+        }
+    </script>
+</body>
+</html>
