@@ -3,20 +3,20 @@ from cipher.caesar import caesar_encrypt, caesar_decrypt
 
 caesar_bp = Blueprint("caesar_bp", __name__)
 
-@caesar_bp.route("/caesar")
+@caesar_bp.route("/caesar", methods=["GET"])
 def page():
     return render_template("caesar.html")
 
 @caesar_bp.route("/caesar/send", methods=["POST"])
-def send():
-    data = request.json
-    text = data.get("text")
-    shift = data.get("shift", 3)
-    mode = data.get("mode", "encrypt")
+def caesar_send():
+    data = request.get_json()
+    text = data.get("text", "")
+    try:
+        shift = int(data.get("shift", 0))
+    except:
+        shift = 0
 
-    if mode == "encrypt":
-        result = caesar_encrypt(text, shift)
-    else:
-        result = caesar_decrypt(text, shift)
+    encrypted = caesar_encrypt(text, shift)
+    decrypted = caesar_decrypt(encrypted, shift)
 
-    return jsonify({"result": result})
+    return jsonify({"encrypted": encrypted, "decrypted": decrypted})

@@ -1,68 +1,183 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Caesar Şifreleme</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 30px; }
-        h1 { color: #2c3e50; }
-        .container { background: #fff; border-radius: 12px; padding: 20px 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 500px; }
-        label { font-weight: bold; display: block; margin-top: 10px; }
-        input, textarea, button { width: 100%; margin-top: 5px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
-        button { margin-top: 15px; background-color: #007bff; color: white; border: none; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        .output { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; }
-        pre { background: #e9ecef; padding: 10px; border-radius: 8px; font-family: Consolas, monospace; }
-        .back { margin-top: 20px; display: block; text-align: center; }
-        .back a { text-decoration: none; color: #007bff; font-weight: bold; }
-        .back a:hover { color: #0056b3; }
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(135deg, #d9e4f5, #f5f7fa);
+        padding: 40px 10px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .card {
+        width: 100%;
+        max-width: 600px;
+        background: white;
+        padding: 30px 35px;
+        border-radius: 16px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        animation: fadeIn 0.4s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 15px;
+      }
+
+      label {
+        font-weight: 600;
+        margin-top: 12px;
+        display: block;
+        font-size: 15px;
+      }
+
+      textarea,
+      input {
+        width: 100%;
+        padding: 10px;
+        margin-top: 6px;
+        font-size: 15px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        transition: 0.2s;
+      }
+
+      textarea:focus,
+      input:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 6px rgba(0, 123, 255, 0.3);
+      }
+
+      button {
+        width: 100%;
+        margin-top: 20px;
+        padding: 12px;
+        font-size: 16px;
+        font-weight: bold;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.25s;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+        transform: scale(1.03);
+      }
+
+      .output {
+        margin-top: 25px;
+        padding: 15px;
+        background: #f4f6f8;
+        border-left: 4px solid #007bff;
+        border-radius: 10px;
+      }
+
+      pre {
+        background: #eef1f5;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 15px;
+      }
+
+      .back {
+        text-align: center;
+        margin-top: 25px;
+      }
+
+      .back a {
+        color: #007bff;
+        font-weight: bold;
+        text-decoration: none;
+        transition: 0.2s;
+      }
+
+      .back a:hover {
+        color: #004b99;
+      }
     </style>
-</head>
-<body>
-    <h1>Caesar Şifreleme</h1>
-    <div class="container">
-        <label>Mesaj:</label>
-        <textarea id="message" rows="3" placeholder="Metni buraya yaz..."></textarea>
-        <label>Anahtar (Shift):</label>
-        <input type="number" id="key" placeholder="Örn: 3">
-        <button onclick="sendMessage()">Gönder</button>
-        <div class="output" id="output" style="display:none;">
-            <h3>Sonuçlar:</h3>
-            <p><strong>Şifrelenmiş Metin:</strong></p>
-            <pre id="encryptedText"></pre>
-            <p><strong>Çözülmüş Metin:</strong></p>
-            <pre id="decryptedText"></pre>
-        </div>
-        <div class="back"><a href="{{ url_for('index') }}">← Ana Menüye Dön</a></div>
+  </head>
+
+  <body>
+    <div class="card">
+      <h1>Caesar Şifreleme</h1>
+
+      <label>Mesaj:</label>
+      <textarea
+        id="message"
+        rows="3"
+        placeholder="Metni buraya yaz..."
+      ></textarea>
+
+      <label>Anahtar (Shift):</label>
+      <input type="number" id="key" placeholder="Örn: 3" />
+
+      <button onclick="sendMessage()">Şifrele</button>
+
+      <div id="output" class="output" style="display: none">
+        <h3>Sonuç:</h3>
+
+        <p><strong>Şifrelenmiş Metin:</strong></p>
+        <pre id="encryptedText"></pre>
+
+        <p><strong>Çözülmüş Metin:</strong></p>
+        <pre id="decryptedText"></pre>
+      </div>
+
+      <div class="back">
+        <a href="{{ url_for('main_bp.index') }}">← Ana Menüye Dön</a>
+      </div>
     </div>
 
     <script>
-        async function sendMessage() {
-            const message = document.getElementById('message').value.trim();
-            const key = document.getElementById('key').value.trim();
-            if(!message) { alert("Lütfen bir mesaj girin."); return; }
+      async function sendMessage() {
+        const message = document.getElementById("message").value.trim();
+        const key = Number(document.getElementById("key").value.trim()) || 0;
 
-            const response = await fetch('/send', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ message, method: 'caesar', key, mode: 'encrypt' })
-            });
-
-            const data = await response.json();
-            const outputDiv = document.getElementById('output');
-            const encryptedText = document.getElementById('encryptedText');
-            const decryptedText = document.getElementById('decryptedText');
-
-            outputDiv.style.display = 'block';
-
-            if(data.error){
-                encryptedText.textContent = "Hata: " + data.error;
-                decryptedText.textContent = "";
-            } else {
-                encryptedText.textContent = data.result || "(boş)";
-                decryptedText.textContent = data.reverse || "(boş)";
-            }
+        if (!message) {
+          alert("Lütfen bir mesaj girin.");
+          return;
         }
+
+        try {
+          const response = await fetch("/caesar/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: message, shift: key }),
+          });
+
+          if (!response.ok) {
+            alert("Sunucu hatası!");
+            return;
+          }
+
+          const data = await response.json();
+
+          document.getElementById("output").style.display = "block";
+          document.getElementById("encryptedText").textContent = data.encrypted;
+          document.getElementById("decryptedText").textContent = data.decrypted;
+        } catch (error) {
+          console.error(error);
+          alert("İstek gönderilirken hata oluştu!");
+        }
+      }
     </script>
-</body>
+  </body>
 </html>

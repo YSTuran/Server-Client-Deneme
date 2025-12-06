@@ -37,12 +37,13 @@
   <body>
     <h1>Şifreleme Uygulaması - Ana Menü</h1>
     <div class="menu">
-      <a href="{{ url_for('caesar') }}">Sezar</a>
-      <a href="{{ url_for('railfence') }}">Rail Fence</a>
-      <a href="{{ url_for('substitution') }}">Substitution</a>
-      <a href="{{ url_for('hill') }}">Hill Cipher</a>
-      <a href="{{ url_for('polybius') }}">Polybius</a>
-      <a href="{{ url_for('columnar') }}">Columnar Transposition</a>
+      <a href="{{ url_for('caesar_bp.page') }}">Sezar</a>
+      <a href="{{ url_for('vigenere_bp.page') }}">Vigenere</a>
+      <a href="{{ url_for('railfence_bp.page') }}">Rail Fence</a>
+      <a href="{{ url_for('substitution_bp.page') }}">Substitution</a>
+      <a href="{{ url_for('hill_bp.page') }}">Hill Cipher</a>
+      <a href="{{ url_for('polybius_bp.page') }}">Polybius</a>
+      <a href="{{ url_for('columnar_bp.page') }}">Columnar Transposition</a>
     </div>
   </body>
 </html>

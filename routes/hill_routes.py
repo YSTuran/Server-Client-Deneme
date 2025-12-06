@@ -3,20 +3,24 @@ from cipher.hill import hill_encrypt, hill_decrypt
 
 hill_bp = Blueprint("hill_bp", __name__)
 
-@hill_bp.route("/hill")
+@hill_bp.route("/hill", methods=["GET"])
 def page():
     return render_template("hill.html")
 
 @hill_bp.route("/hill/send", methods=["POST"])
-def send():
-    data = request.json
-    text = data.get("text")
-    key = data.get("key")
-    mode = data.get("mode")
+def hill_send():
+    data = request.get_json()
+    text = data.get("text", "").strip()
+    matrix_str = data.get("matrix", "").strip()
 
-    if mode == "encrypt":
-        result = hill_encrypt(text, key)
-    else:
-        result = hill_decrypt(text, key)
+    if not text or not matrix_str:
+        return jsonify({"error": "Metin ve matriks boş olamaz"}), 400
 
-    return jsonify({"result": result})
+    try:
+        matrix_values = [int(x) for x in matrix_str.split(",")]
+        encrypted = hill_encrypt(text, matrix_values)
+        decrypted = hill_decrypt(encrypted, matrix_values)
+    except Exception as e:
+        return jsonify({"error": f"Matriste hata: {str(e)}"}), 400
+
+    return jsonify({"encrypted": encrypted, "decrypted": decrypted})

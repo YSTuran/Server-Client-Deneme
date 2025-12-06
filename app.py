@@ -1,7 +1,5 @@
 from flask import Flask
 from config import Config
-
-# Blueprint dosyalarını import et
 from routes.main_routes import main_bp
 from routes.caesar_routes import caesar_bp
 from routes.vigenere_routes import vigenere_bp

@@ -1,4 +1,4 @@
-def rail_encrypt(text, rails=3):
+def railfence_encrypt(text, rails=3):
     text = text.replace(" ", "*")
 
     rail = [""] * rails
@@ -15,7 +15,7 @@ def rail_encrypt(text, rails=3):
     return "".join(rail)
 
 
-def rail_decrypt(text, rails=3):
+def railfence_decrypt(text, rails=3):
     pattern = [0] * len(text)
     direction = 1
     row = 0
