@@ -44,13 +44,13 @@
     </style>
   </head>
   <body>
-    <h1>DES Cipher (2 Tur)</h1>
+    <h1>DES Cipher</h1>
     <div class="container">
       <label>Metin (8 karakter):</label>
       <textarea id="message" rows="1"></textarea>
 
       <label>Anahtar (7 karakter):</label>
-      <input id="key" placeholder="7 karakter girin" />
+      <input id="key" placeholder="7 karakter girin" maxlength="8"/>
 
       <button onclick="sendMessage()">Şifrele & Çöz</button>
 
