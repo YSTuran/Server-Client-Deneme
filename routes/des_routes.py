@@ -9,10 +9,6 @@ def page():
 
 
 def expand_7_to_8_key(key7: str) -> str:
-    """
-    7 karakterlik insan dostu key → gerçek DES'in istediği 8 byte key
-    Parity bitlerini otomatik ekler.
-    """
     bits = "".join(f"{ord(c):07b}" for c in key7)
 
     result = ""
@@ -22,7 +18,6 @@ def expand_7_to_8_key(key7: str) -> str:
         parity = "1" if ones % 2 == 0 else "0"  # odd parity
         result += chunk + parity
 
-    # bit string → 8 karakter
     key_bytes = [result[i:i+8] for i in range(0, 64, 8)]
     real_key = "".join(chr(int(b, 2)) for b in key_bytes)
 
@@ -42,7 +37,6 @@ def des_send():
         return jsonify({"error": "Anahtar 7 karakter olmalı"}), 400
 
     try:
-        # 7 karakter → 8 byte gerçek DES key
         real_key = expand_7_to_8_key(key)
 
         encrypted = des_encrypt(text, real_key)
