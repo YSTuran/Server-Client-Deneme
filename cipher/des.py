@@ -223,7 +223,6 @@ def des_decrypt(cipher_hex, key):
     block_bits = _bytes_to_bits(cipher_bytes)
     out_bits = _des_block_process(block_bits, subkeys, encrypt=False)
     out_bytes = _bits_to_bytes(out_bits)
-    # decode as latin-1 to preserve byte values 0..255
     return out_bytes.decode('latin-1')
 
 
