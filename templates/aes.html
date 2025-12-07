@@ -81,7 +81,6 @@
         }
 
         try {
-          // encrypt
           const encryptRes = await fetch("/aes/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -96,7 +95,6 @@
 
           const encrypted = encryptData.encrypted;
 
-          // decrypt — NOTE: send as `text`
           const decryptRes = await fetch("/aes/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

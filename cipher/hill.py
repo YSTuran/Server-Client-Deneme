@@ -8,7 +8,6 @@ def prepare_text(text, n):
     return text
 
 def mod_inv(a, m):
-    """a * x ≡ 1 (mod m) tamsayı mod inversi"""
     a = a % m
     for x in range(1, m):
         if (a * x) % m == 1:
@@ -39,7 +38,6 @@ def hill_decrypt(text, key):
         raise ValueError(f"Key boyutu {n}x{n} matris için uygun değil!")
     key = key.reshape(n, n)
 
-    # Determinant ve tersi
     det = int(round(np.linalg.det(key))) % 26
     det_inv = mod_inv(det, 26)
 
