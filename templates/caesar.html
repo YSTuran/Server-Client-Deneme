@@ -147,6 +147,16 @@
     </div>
 
     <script>
+      const XOR_KEY = 123;
+
+      function xorText(text, key) {
+        let output = "";
+        for (let i = 0; i < text.length; i++) {
+          output += String.fromCharCode(text.charCodeAt(i) ^ key);
+        }
+        return output;
+      }
+
       async function sendMessage() {
         const message = document.getElementById("message").value.trim();
         const key = Number(document.getElementById("key").value.trim()) || 0;
@@ -155,12 +165,13 @@
           alert("Lütfen bir mesaj girin.");
           return;
         }
+        const xorMessage = xorText(message, XOR_KEY);
 
         try {
           const response = await fetch("/caesar/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: message, shift: key }),
+            body: JSON.stringify({ text: xorMessage, shift: key }),
           });
 
           if (!response.ok) {
@@ -169,10 +180,11 @@
           }
 
           const data = await response.json();
+          const decrypted = xorText(data.decrypted, XOR_KEY);
 
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent = data.encrypted;
-          document.getElementById("decryptedText").textContent = data.decrypted;
+          document.getElementById("decryptedText").textContent = decrypted;
         } catch (error) {
           console.error(error);
           alert("İstek gönderilirken hata oluştu!");

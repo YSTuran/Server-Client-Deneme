@@ -3,6 +3,11 @@ from cipher.vigenere import vigenere_encrypt, vigenere_decrypt
 
 vigenere_bp = Blueprint("vigenere_bp", __name__)
 
+SERVER_XOR_KEY = 123
+
+def xor_text(text, key):
+    return "".join(chr(ord(c) ^ key) for c in text)
+
 @vigenere_bp.route("/vigenere", methods=["GET"])
 def page():
     return render_template("vigenere.html")
@@ -10,17 +15,24 @@ def page():
 @vigenere_bp.route("/vigenere/send", methods=["POST"])
 def vigenere_send():
     data = request.get_json()
-    text = data.get("text", "")
+    xor_text_from_client = data.get("text", "")
     key = data.get("key", "")
 
-    if not text or not key:
+    if not xor_text_from_client or not key:
         return jsonify({"error": "Metin ve anahtar boş olamaz"}), 400
 
     try:
-        encrypted = vigenere_encrypt(text, key)
+        original_text = xor_text(xor_text_from_client, SERVER_XOR_KEY)
+
+        encrypted = vigenere_encrypt(original_text, key)
         decrypted = vigenere_decrypt(encrypted, key)
+
+        decrypted_xor = xor_text(decrypted, SERVER_XOR_KEY)
+
     except Exception as e:
         return jsonify({"error": f"Şifreleme hatası: {str(e)}"}), 400
 
-    return jsonify({"encrypted": encrypted, "decrypted": decrypted})
-
+    return jsonify({
+        "encrypted": encrypted,
+        "decrypted": decrypted_xor
+    })

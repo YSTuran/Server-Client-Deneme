@@ -40,17 +40,22 @@
         padding: 10px;
         border-radius: 6px;
       }
-      pre { background:#eee; padding:10px; border-radius:6px; overflow-x:auto; }
+      pre {
+        background: #eee;
+        padding: 10px;
+        border-radius: 6px;
+        overflow-x: auto;
+      }
     </style>
   </head>
   <body>
-    <h1>DES Cipher</h1>
+    <h1>DES Şifreleme</h1>
     <div class="container">
       <label>Metin (8 karakter):</label>
       <textarea id="message" rows="1"></textarea>
 
       <label>Anahtar (7 karakter):</label>
-      <input id="key" placeholder="7 karakter girin" maxlength="8"/>
+      <input id="key" placeholder="7 karakter girin" maxlength="8" />
 
       <button onclick="sendMessage()">Şifrele & Çöz</button>
 
@@ -65,11 +70,18 @@
     </div>
 
     <script>
+      function xorCrypt(text) {
+        const XOR_KEY = 0x5a;
+        return [...text]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
+      }
+
       async function sendMessage() {
         const text = document.getElementById("message").value;
         const key = document.getElementById("key").value;
 
-        if (text.length != 8 || key.length != 7) {
+        if (text.length !== 8 || key.length !== 7) {
           alert("Metin 8 karakter ve anahtar 7 karakter olmalı!");
           return;
         }
@@ -78,19 +90,26 @@
           const res = await fetch("/des/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, key }),
+            body: JSON.stringify({
+              text: xorCrypt(text),
+              key: xorCrypt(key),
+            }),
           });
 
+          const data = await res.json();
+
           if (!res.ok) {
-            const err = await res.json();
-            alert(err.error || "Sunucu hatası!");
+            alert(data.error || "Sunucu hatası!");
             return;
           }
 
-          const data = await res.json();
           document.getElementById("output").style.display = "block";
-          document.getElementById("encryptedText").textContent = data.encrypted;
-          document.getElementById("decryptedText").textContent = data.decrypted;
+          document.getElementById("encryptedText").textContent = xorCrypt(
+            data.encrypted
+          );
+          document.getElementById("decryptedText").textContent = xorCrypt(
+            data.decrypted
+          );
         } catch (error) {
           console.error(error);
           alert("İstek gönderilirken hata oluştu!");

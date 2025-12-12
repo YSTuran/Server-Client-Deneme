@@ -37,7 +37,7 @@
     </style>
   </head>
   <body>
-    <h1>Substitution Cipher</h1>
+    <h1>Substitution Şifreleme</h1>
     <div class="container">
       <label>Mesaj:</label>
       <textarea id="message" rows="3"></textarea>
@@ -66,11 +66,18 @@
           return;
         }
 
+        const CLIENT_XOR_KEY = 123;
+
+        // 1) Göndermeden önce metni XOR'la
+        const xorText = [...text]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ CLIENT_XOR_KEY))
+          .join("");
+
         try {
           const res = await fetch("/substitution/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, key }),
+            body: JSON.stringify({ text: xorText, key }),
           });
 
           if (!res.ok) {
@@ -80,6 +87,7 @@
           }
 
           const data = await res.json();
+
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent = data.encrypted;
           document.getElementById("decryptedText").textContent = data.decrypted;

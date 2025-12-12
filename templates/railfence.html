@@ -82,11 +82,17 @@
           return;
         }
 
+        const XOR_KEY = 123;
+
+        const xorText = [...text]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
+
         try {
           const res = await fetch("/railfence/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, key }),
+            body: JSON.stringify({ text: xorText, key }),
           });
 
           if (!res.ok) {
@@ -96,6 +102,7 @@
           }
 
           const data = await res.json();
+
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent =
             data.encrypted || "";

@@ -20,14 +20,15 @@
         padding: 25px 35px;
         border-radius: 12px;
         width: 500px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       }
       label {
         font-weight: bold;
         margin-top: 10px;
         display: block;
       }
-      textarea, input {
+      textarea,
+      input {
         width: 100%;
         padding: 10px;
         margin-top: 5px;
@@ -98,6 +99,16 @@
     </div>
 
     <script>
+      const XOR_KEY = 123;
+
+      function xorText(text, key) {
+        let out = "";
+        for (let i = 0; i < text.length; i++) {
+          out += String.fromCharCode(text.charCodeAt(i) ^ key);
+        }
+        return out;
+      }
+
       async function sendMessage() {
         const text = document.getElementById("message").value.trim();
         const key = document.getElementById("key").value.trim();
@@ -107,11 +118,13 @@
           return;
         }
 
+        const xorTextToSend = xorText(text, XOR_KEY);
+
         try {
           const res = await fetch("/columnar/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, key }),
+            body: JSON.stringify({ text: xorTextToSend, key }),
           });
 
           if (!res.ok) {
@@ -121,9 +134,12 @@
           }
 
           const data = await res.json();
+
+          const decrypted = xorText(data.decrypted, XOR_KEY);
+
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent = data.encrypted;
-          document.getElementById("decryptedText").textContent = data.decrypted;
+          document.getElementById("decryptedText").textContent = decrypted;
         } catch (error) {
           console.error(error);
           alert("İstek gönderilirken hata oluştu!");

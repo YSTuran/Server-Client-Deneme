@@ -20,7 +20,7 @@
         padding: 25px 35px;
         border-radius: 12px;
         width: 500px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       }
       label {
         font-weight: bold;
@@ -74,7 +74,7 @@
     </style>
   </head>
   <body>
-    <h1>Polybius Cipher</h1>
+    <h1>Polybius Şifreleme</h1>
 
     <div class="container">
       <label>Mesaj:</label>
@@ -101,11 +101,16 @@
           return;
         }
 
+        const XOR_KEY = 123;
+        const xorText = [...text]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
+
         try {
           const res = await fetch("/polybius/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify({ text: xorText }),
           });
 
           if (!res.ok) {
@@ -115,6 +120,7 @@
           }
 
           const data = await res.json();
+
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent = data.encrypted;
           document.getElementById("decryptedText").textContent = data.decrypted;
