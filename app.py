@@ -10,6 +10,7 @@ from routes.polybius_routes import polybius_bp
 from routes.columnar_routes import columnar_bp
 from routes.des_routes import des_bp
 from routes.aes_routes import aes_bp
+from routes.rsa_routes import rsa_bp
 
 import socket, random
 
@@ -27,6 +28,7 @@ def create_app():
     app.register_blueprint(columnar_bp)
     app.register_blueprint(des_bp)
     app.register_blueprint(aes_bp)
+    app.register_blueprint(rsa_bp)
 
     return app
 

@@ -53,21 +53,23 @@
       .c7 { background-color: #e76f51; } 
       .c8 { background-color: #1d3557; } 
       .c9 {background-color: darkgray;}
+      .c10 {background-color: chocolate;}
     </style>
   </head>
   <body>
     <h1>Şifreleme Uygulaması - Ana Menü</h1>
 
     <div class="menu">
-      <a class="card c1" href="{{ url_for('caesar_bp.page') }}">Sezar</a>
-      <a class="card c2" href="{{ url_for('vigenere_bp.page') }}">Vigenere</a>
-      <a class="card c3" href="{{ url_for('railfence_bp.page') }}">Rail Fence</a>
-      <a class="card c4" href="{{ url_for('substitution_bp.page') }}">Substitution</a>
-      <a class="card c5" href="{{ url_for('hill_bp.page') }}">Hill Cipher</a>
-      <a class="card c6" href="{{ url_for('polybius_bp.page') }}">Polybius</a>
-      <a class="card c7" href="{{ url_for('columnar_bp.page') }}">Columnar Transposition</a>
-      <a class="card c8" href="{{ url_for('des_bp.page') }}">DES</a>
-      <a class="card c9" href="{{ url_for('aes_bp.page') }}">AES-128</a>
+      <a class="card c1" href = "{{ url_for('caesar_bp.page') }}">Sezar</a>
+      <a class="card c2" href = "{{ url_for('vigenere_bp.page') }}">Vigenere</a>
+      <a class="card c3" href = "{{ url_for('railfence_bp.page') }}">Rail Fence</a>
+      <a class="card c4" href = "{{ url_for('substitution_bp.page') }}">Substitution</a>
+      <a class="card c5" href = "{{ url_for('hill_bp.page') }}">Hill Cipher</a>
+      <a class="card c6" href = "{{ url_for('polybius_bp.page') }}">Polybius</a>
+      <a class="card c7" href = "{{ url_for('columnar_bp.page') }}">Columnar Transposition</a>
+      <a class="card c8" href = "{{ url_for('des_bp.page') }}">DES</a>
+      <a class="card c9" href = "{{ url_for('aes_bp.page') }}">AES-128</a>
+      <a class="card c10" href = "{{url_for('rsa_bp.page')}}">RSA</a>
     </div>
   </body>
 </html>
