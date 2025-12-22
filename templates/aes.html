@@ -1,121 +1,110 @@
 <!DOCTYPE html>
 <html lang="tr">
-  <head>
-    <meta charset="UTF-8" />
-    <title>AES Cipher</title>
-    <style>
-      body {
-        font-family: Arial;
-        background: #f0f2f5;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 30px;
-      }
-      .container {
-        background: #fff;
-        padding: 20px 30px;
-        border-radius: 12px;
-        width: 500px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      }
-      input,
-      button {
-        width: 100%;
-        padding: 8px;
-        margin-top: 5px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-      }
-      button {
-        background: #007bff;
-        color: white;
-        margin-top: 15px;
-        border: none;
-      }
-      .output {
-        margin-top: 12px;
-        background: #f8f9fa;
-        padding: 10px;
-        border-radius: 6px;
-      }
-      pre {
-        background: #eee;
-        padding: 10px;
-        border-radius: 6px;
-        overflow-x: auto;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>AES Şifreleme (AES-128)</h1>
+<head>
+  <meta charset="UTF-8">
+  <title>AES Cipher</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f0f2f5;
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      width: 520px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+    .box {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
 
-    <div class="container">
-      <label>Metin (16 karakter):</label>
-      <input id="message" maxlength="16" />
+<body>
+<div class="container">
+  <h2>AES Şifreleme (AES-128)</h2>
 
-      <label>Anahtar (16 karakter):</label>
-      <input id="key" maxlength="16" />
+  <label>Metin (16 karakter)</label>
+  <input id="text" maxlength="16">
 
-      <button onclick="sendMessage()">Şifrele & Çöz</button>
+  <label>Anahtar (16 karakter)</label>
+  <input id="key" maxlength="16">
 
-      <div class="output" id="output" style="display: none">
-        <h3>Şifrelenmiş Metin (hex):</h3>
-        <pre id="encryptedText"></pre>
+  <label>İletim Yöntemi</label>
+  <select id="transport">
+    <option value="none">Yok</option>
+    <option value="rsa">RSA</option>
+    <option value="ecc">ECC</option>
+  </select>
 
-        <h3>Çözülmüş Metin:</h3>
-        <pre id="decryptedText"></pre>
-      </div>
+  <button onclick="send()">Şifrele</button>
 
-      <a href="{{ url_for('main_bp.index') }}">← Ana Menü</a>
-    </div>
+  <div id="output" style="display:none">
+    <h4>Şifrelenmiş</h4>
+    <div class="box" id="encrypted"></div>
 
-    <script>
-      async function sendMessage() {
-        const text = document.getElementById("message").value.trim();
-        const key = document.getElementById("key").value.trim();
+    <h4>Çözülmüş</h4>
+    <div class="box" id="decrypted"></div>
 
-        if (text.length !== 16 || key.length !== 16) {
-          alert("Metin ve anahtar 16 karakter olmalı!");
-          return;
-        }
+    <h4>İletim Çıktısı</h4>
+    <div class="box" id="transported"></div>
+  </div>
+</div>
 
-        try {
-          const encryptRes = await fetch("/aes/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, key, mode: "encrypt" }),
-          });
+<script>
+async function send() {
+  const text = document.getElementById("text").value;
+  const key = document.getElementById("key").value;
+  const transport = document.getElementById("transport").value;
 
-          const encryptData = await encryptRes.json().catch(() => ({}));
-          if (!encryptRes.ok) {
-            alert(encryptData.error || "Şifreleme hatası");
-            return;
-          }
+  const res = await fetch("/aes/send", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ text, key, transport })
+  });
 
-          const encrypted = encryptData.encrypted;
+  const data = await res.json();
 
-          const decryptRes = await fetch("/aes/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: encrypted, key, mode: "decrypt" }),
-          });
+  document.getElementById("output").style.display = "block";
+  document.getElementById("encrypted").textContent = data.encrypted;
+  document.getElementById("decrypted").textContent = data.decrypted;
 
-          const decryptData = await decryptRes.json().catch(() => ({}));
-          if (!decryptRes.ok) {
-            alert(decryptData.error || "Çözme hatası");
-            return;
-          }
-
-          document.getElementById("output").style.display = "block";
-          document.getElementById("encryptedText").textContent = encrypted;
-          document.getElementById("decryptedText").textContent =
-            decryptData.decrypted;
-        } catch (err) {
-          console.error("Fetch error:", err);
-          alert("İstek gönderilirken hata oluştu!");
-        }
-      }
-    </script>
-  </body>
+  if (data.transport === "ecc") {
+    document.getElementById("transported").textContent =
+      "Ciphertext:\n" + data.transported.ciphertext +
+      "\n\nEphemeral Public Key:\n" + data.transported.ephemeral_pub +
+      "\n\nIV:\n" + data.transported.iv +
+      "\n\nECC Decrypted:\n" + data.ecc_decrypted;
+  }
+  else if (data.transport === "rsa") {
+    document.getElementById("transported").textContent = data.transported;
+  }
+  else {
+    document.getElementById("transported").textContent = "-";
+  }
+}
+</script>
+</body>
 </html>

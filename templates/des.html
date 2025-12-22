@@ -2,118 +2,137 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <title>DES Cipher</title>
+    <title>DES Şifreleme</title>
+
     <style>
       body {
         font-family: Arial;
         background: #f0f2f5;
         display: flex;
-        flex-direction: column;
+        justify-content: center;
         align-items: center;
-        padding: 30px;
+        min-height: 100vh;
       }
-      .container {
+
+      .card {
         background: #fff;
-        padding: 20px 30px;
+        width: 460px;
+        padding: 25px;
         border-radius: 12px;
-        width: 500px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       }
+
+      h1 {
+        text-align: center;
+        color: #2a5298;
+      }
+
+      label {
+        font-weight: bold;
+        margin-top: 12px;
+        display: block;
+      }
+
       input,
-      textarea,
+      select,
       button {
         width: 100%;
         padding: 8px;
-        margin-top: 5px;
+        margin-top: 6px;
+        border-radius: 6px;
         border: 1px solid #ccc;
-        border-radius: 6px;
       }
+
       button {
-        background: #007bff;
+        background: #2a5298;
         color: white;
+        font-weight: bold;
+        cursor: pointer;
         margin-top: 15px;
-        border: none;
       }
-      .output {
-        margin-top: 12px;
-        background: #f8f9fa;
+
+      .box {
+        background: #f4f6fa;
         padding: 10px;
         border-radius: 6px;
-      }
-      pre {
-        background: #eee;
-        padding: 10px;
-        border-radius: 6px;
-        overflow-x: auto;
+        margin-top: 8px;
+        white-space: pre-wrap;
+        word-break: break-all;
       }
     </style>
   </head>
+
   <body>
-    <h1>DES Şifreleme</h1>
-    <div class="container">
-      <label>Metin (8 karakter):</label>
-      <textarea id="message" rows="1"></textarea>
+    <div class="card">
+      <h1>DES Şifreleme</h1>
 
-      <label>Anahtar (7 karakter):</label>
-      <input id="key" placeholder="7 karakter girin" maxlength="8" />
+      <label>Metin (8 karakter)</label>
+      <input id="text" maxlength="8" placeholder="Aa1!Bb2@" />
 
-      <button onclick="sendMessage()">Şifrele & Çöz</button>
+      <label>Anahtar (7 karakter)</label>
+      <input id="key" maxlength="7" placeholder="Key123!" />
 
-      <div class="output" id="output" style="display: none">
-        <h3>Şifrelenmiş Metin (hex):</h3>
-        <pre id="encryptedText"></pre>
-        <h3>Çözülmüş Metin:</h3>
-        <pre id="decryptedText"></pre>
+      <label>İletim Türü</label>
+      <select id="transport">
+        <option value="none">Yok</option>
+        <option value="rsa">RSA</option>
+        <option value="ecc">ECC</option>
+      </select>
+
+      <button onclick="send()">Şifrele</button>
+
+      <div id="output" style="display: none">
+        <h4>Şifrelenmiş Metin</h4>
+        <div class="box" id="encrypted"></div>
+
+        <h4>Çözülmüş Metin</h4>
+        <div class="box" id="decrypted"></div>
+
+        <h4>İletim Çıktısı</h4>
+        <div class="box" id="transported"></div>
+
+        <h4>İletimden Çözülen</h4>
+        <div class="box" id="transportDecrypted"></div>
       </div>
-
-      <a href="{{ url_for('main_bp.index') }}">← Ana Menü</a>
     </div>
 
     <script>
-      function xorCrypt(text) {
-        const XOR_KEY = 0x5a;
-        return [...text]
-          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
-          .join("");
-      }
-
-      async function sendMessage() {
-        const text = document.getElementById("message").value;
+      async function send() {
+        const text = document.getElementById("text").value;
         const key = document.getElementById("key").value;
+        const transport = document.getElementById("transport").value;
 
         if (text.length !== 8 || key.length !== 7) {
-          alert("Metin 8 karakter ve anahtar 7 karakter olmalı!");
+          alert("Metin 8, anahtar 7 karakter olmalı");
           return;
         }
 
-        try {
-          const res = await fetch("/des/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              text: xorCrypt(text),
-              key: xorCrypt(key),
-            }),
-          });
+        const res = await fetch("/des/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, key, transport }),
+        });
 
-          const data = await res.json();
+        const data = await res.json();
 
-          if (!res.ok) {
-            alert(data.error || "Sunucu hatası!");
-            return;
-          }
+        document.getElementById("output").style.display = "block";
+        document.getElementById("encrypted").textContent = data.encrypted;
+        document.getElementById("decrypted").textContent = data.decrypted;
 
-          document.getElementById("output").style.display = "block";
-          document.getElementById("encryptedText").textContent = xorCrypt(
-            data.encrypted
-          );
-          document.getElementById("decryptedText").textContent = xorCrypt(
-            data.decrypted
-          );
-        } catch (error) {
-          console.error(error);
-          alert("İstek gönderilirken hata oluştu!");
+        if (transport === "ecc") {
+          document.getElementById("transported").textContent =
+            "Ciphertext:\n" +
+            data.transported.ciphertext +
+            "\n\nEphemeral Public Key:\n" +
+            data.transported.ephemeral_pub +
+            "\n\nIV:\n" +
+            data.transported.iv;
+        } else {
+          document.getElementById("transported").textContent = data.transported;
         }
+
+        document.getElementById("transportDecrypted").textContent =
+          data.transport_decrypted || "-";
       }
     </script>
   </body>

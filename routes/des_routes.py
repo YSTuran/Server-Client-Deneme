@@ -1,60 +1,56 @@
 from flask import Blueprint, render_template, request, jsonify
 from cipher.des import des_encrypt, des_decrypt
+from cipher.rsa import rsa_encrypt, rsa_decrypt, generate_keys
+from cipher.ecc import ecc_encrypt, ecc_decrypt, generate_ecc_keys
 
-des_bp = Blueprint("des_bp", __name__)
+des_bp = Blueprint("des_bp", __name__, url_prefix="/des")
 
-SERVER_XOR_KEY = 123
+RSA_PUBLIC_KEY, RSA_PRIVATE_KEY = generate_keys()
+ECC_PUBLIC_KEY, ECC_PRIVATE_KEY = generate_ecc_keys()
 
-def xor_text(text, key):
-    return "".join(chr(ord(c) ^ key) for c in text)
 
-@des_bp.route("/des", methods=["GET"])
+@des_bp.route("/", methods=["GET"])
 def page():
     return render_template("des.html")
 
 
-def expand_7_to_8_key(key7: str) -> str:
-    bits = "".join(f"{ord(c):07b}" for c in key7)
+@des_bp.route("/send", methods=["POST"])
+def send():
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "JSON body yok"}), 400
 
-    result = ""
-    for i in range(8):
-        chunk = bits[i*7:(i+1)*7]
-        ones = chunk.count("1")
-        parity = "1" if ones % 2 == 0 else "0"
-        result += chunk + parity
-
-    key_bytes = [result[i:i+8] for i in range(0, 64, 8)]
-    real_key = "".join(chr(int(b, 2)) for b in key_bytes)
-
-    return real_key
-
-
-@des_bp.route("/des/send", methods=["POST"])
-def des_send():
-    data = request.get_json() or {}
-    xor_text_from_client = data.get("text", "")
+    text = data.get("text", "")
     key = data.get("key", "")
+    transport = data.get("transport", "none")
 
-    if len(xor_text_from_client) != 8:
-        return jsonify({"error": "Metin 8 karakter olmalı"}), 400
+    if len(text) != 8 or len(key) != 7:
+        return jsonify({"error": "Metin 8, anahtar 7 karakter olmalı"}), 400
 
-    if len(key) != 7:
-        return jsonify({"error": "Anahtar 7 karakter olmalı"}), 400
+    encrypted = des_encrypt(text, key)
+    decrypted = des_decrypt(encrypted, key)
 
-    try:
-        original_text = xor_text(xor_text_from_client, SERVER_XOR_KEY)
-
-        real_key = expand_7_to_8_key(key)
-
-        encrypted = des_encrypt(original_text, real_key)
-
-        decrypted = des_decrypt(encrypted, real_key)
-        decrypted_xor = xor_text(decrypted, SERVER_XOR_KEY)
-
-    except Exception as e:
-        return jsonify({"error": f"DES hatası: {str(e)}"}), 400
-
-    return jsonify({
+    response = {
         "encrypted": encrypted,
-        "decrypted": decrypted_xor
-    })
+        "decrypted": decrypted,
+        "transport": transport
+    }
+
+    if transport == "rsa":
+        rsa_cipher = rsa_encrypt(encrypted, RSA_PUBLIC_KEY)
+        rsa_plain = rsa_decrypt(rsa_cipher, RSA_PRIVATE_KEY)
+
+        response["transported"] = rsa_cipher
+        response["transport_decrypted"] = rsa_plain
+
+    elif transport == "ecc":
+        ecc_payload = ecc_encrypt(encrypted.encode(), ECC_PUBLIC_KEY)
+        ecc_plain = ecc_decrypt(ecc_payload, ECC_PRIVATE_KEY)
+
+        response["transported"] = ecc_payload
+        response["transport_decrypted"] = ecc_plain.decode()
+
+    else:
+        response["transported"] = "-"
+
+    return jsonify(response)
