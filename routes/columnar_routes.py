@@ -16,23 +16,20 @@ def page():
 @columnar_bp.route("/columnar/send", methods=["POST"])
 def columnar_send():
     data = request.get_json()
-    xor_text_from_client = data.get("text", "").strip()
+    text = data.get("text", "").strip()
     key = data.get("key", "").strip()
 
-    if not xor_text_from_client or not key:
+    if not text or not key:
         return jsonify({"error": "Metin ve anahtar boş olamaz"}), 400
 
     try:
-        original_text = xor_text(xor_text_from_client, SERVER_XOR_KEY)
-
-        encrypted = columnar_encrypt(original_text, key)
+        encrypted = columnar_encrypt(text, key)
         decrypted = columnar_decrypt(encrypted, key)
-        decrypted_xor = xor_text(decrypted, SERVER_XOR_KEY)
 
     except Exception as e:
         return jsonify({"error": f"Şifreleme hatası: {str(e)}"}), 400
 
     return jsonify({
         "encrypted": encrypted,
-        "decrypted": decrypted_xor
+        "decrypted": decrypted
     })

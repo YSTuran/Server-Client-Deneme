@@ -1,3 +1,4 @@
+import base64
 from flask import Blueprint, render_template, request, jsonify
 from cipher.substitution import substitution_encrypt, substitution_decrypt
 
@@ -15,24 +16,25 @@ def page():
 @substitution_bp.route("/substitution/send", methods=["POST"])
 def substitution_send():
     data = request.get_json()
-    xor_text_from_client = data.get("text", "").strip()
+    encoded_xor_text = data.get("text", "").strip()
     key = data.get("key", "").strip()
 
-    if not xor_text_from_client or len(key) != 26:
+    if not encoded_xor_text or len(key) != 26:
         return jsonify({"error": "Metin boş olamaz ve anahtar 26 karakter olmalı"}), 400
 
     try:
+        xor_text_bytes = base64.b64decode(encoded_xor_text)
+        xor_text_from_client = xor_text_bytes.decode('utf-8')
+        
         original_text = xor_text(xor_text_from_client, SERVER_XOR_KEY)
 
         encrypted = substitution_encrypt(original_text, key)
         decrypted = substitution_decrypt(encrypted, key)
 
-        decrypted_xor = xor_text(decrypted, SERVER_XOR_KEY)
-
     except Exception as e:
-        return jsonify({"error": f"Şifreleme hatası: {str(e)}"}), 400
+        return jsonify({"error": f"Şifreleme hatası: {str(e)}"}), 500
 
     return jsonify({
         "encrypted": encrypted,
-        "decrypted": decrypted_xor
+        "decrypted": decrypted
     })

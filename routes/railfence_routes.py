@@ -1,3 +1,4 @@
+import base64
 from flask import Blueprint, render_template, request, jsonify
 from cipher.railfence import railfence_encrypt, railfence_decrypt
 
@@ -16,29 +17,32 @@ def page():
 def railfence_send():
     data = request.get_json()
 
-    xor_text_from_client = data.get("text", "")
-    key = data.get("key", 2)
+    encoded_xor_text = data.get("text", "").strip()
+    key_val = data.get("key", 2)
 
-    if not xor_text_from_client:
+    if not encoded_xor_text:
         return jsonify({"error": "Metin boş olamaz"}), 400
 
     try:
-        rails = int(key)
+        rails = int(key_val)
+        if rails < 2:
+            rails = 2
     except:
         rails = 2
 
     try:
+        xor_text_bytes = base64.b64decode(encoded_xor_text)
+        xor_text_from_client = xor_text_bytes.decode('utf-8')
+        
         original_text = xor_text(xor_text_from_client, SERVER_XOR_KEY)
 
         encrypted = railfence_encrypt(original_text, rails)
         decrypted = railfence_decrypt(encrypted, rails)
 
-        decrypted_xor = xor_text(decrypted, SERVER_XOR_KEY)
-
     except Exception as e:
-        return jsonify({"error": f"Şifreleme hatası: {str(e)}"}), 400
+        return jsonify({"error": f"Şifreleme hatası: {str(e)}"}), 500
 
     return jsonify({
         "encrypted": encrypted,
-        "decrypted": decrypted_xor
+        "decrypted": decrypted
     })
