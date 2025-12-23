@@ -12,9 +12,6 @@
         align-items: center;
         padding: 30px;
       }
-      h1 {
-        color: #333;
-      }
       .container {
         background: #fff;
         padding: 25px 35px;
@@ -34,11 +31,7 @@
         margin-top: 5px;
         border: 1px solid #ccc;
         border-radius: 8px;
-        font-size: 14px;
-      }
-      textarea {
-        height: 100px;
-        resize: vertical;
+        box-sizing: border-box;
       }
       button {
         margin-top: 15px;
@@ -48,32 +41,20 @@
         color: white;
         border: none;
         border-radius: 8px;
-        font-size: 16px;
         cursor: pointer;
-      }
-      button:hover {
-        background: #0056b3;
       }
       .output {
         margin-top: 20px;
         padding: 15px;
         background: #f8f9fa;
         border-radius: 8px;
+        border: 1px solid #ddd;
       }
       pre {
         background: #eee;
         padding: 10px;
         border-radius: 6px;
-        overflow-x: auto;
-      }
-      a {
-        display: block;
-        margin-top: 20px;
-        color: #007bff;
-        text-decoration: none;
-      }
-      a:hover {
-        text-decoration: underline;
+        white-space: pre-wrap;
       }
     </style>
   </head>
@@ -82,11 +63,9 @@
     <div class="container">
       <label>Mesaj:</label>
       <textarea id="message"></textarea>
-
-      <label>Anahtar (Kelime):</label>
-      <input id="key" />
-
-      <button onclick="sendMessage()">Gönder</button>
+      <label>Anahtar:</label>
+      <input id="key" type="text" />
+      <button onclick="sendMessage()" id="sendBtn">Gönder</button>
 
       <div class="output" id="output" style="display: none">
         <h3>Şifrelenmiş Metin:</h3>
@@ -94,55 +73,47 @@
         <h3>Çözülmüş Metin:</h3>
         <pre id="decryptedText"></pre>
       </div>
-
-      <a href="{{ url_for('main_bp.index') }}">← Ana Menü</a>
+      <a href="/">← Ana Menü</a>
     </div>
 
     <script>
-      const XOR_KEY = 123;
-
-      function xorText(text, key) {
-        let out = "";
-        for (let i = 0; i < text.length; i++) {
-          out += String.fromCharCode(text.charCodeAt(i) ^ key);
-        }
-        return out;
+      function unicodeToBase64(str) {
+        return window.btoa(unescape(encodeURIComponent(str)));
       }
 
       async function sendMessage() {
-        const text = document.getElementById("message").value.trim();
+        const text = document.getElementById("message").value;
         const key = document.getElementById("key").value.trim();
+        const sendBtn = document.getElementById("sendBtn");
 
         if (!text || !key) {
-          alert("Lütfen metin ve anahtarı girin!");
+          alert("Eksik bilgi!");
           return;
         }
 
-        const xorTextToSend = xorText(text, XOR_KEY);
+        sendBtn.disabled = true;
+        const XOR_KEY = 123;
+        const xorText = [...text]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
+        const base64Text = unicodeToBase64(xorText);
 
         try {
           const res = await fetch("/columnar/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: xorTextToSend, key }),
+            body: JSON.stringify({ text: base64Text, key: key }),
           });
-
-          if (!res.ok) {
-            const err = await res.json();
-            alert(err.error || "Sunucu hatası!");
-            return;
-          }
-
           const data = await res.json();
-
-          const decrypted = xorText(data.decrypted, XOR_KEY);
+          if (!res.ok) throw new Error(data.error);
 
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent = data.encrypted;
-          document.getElementById("decryptedText").textContent = decrypted;
-        } catch (error) {
-          console.error(error);
-          alert("İstek gönderilirken hata oluştu!");
+          document.getElementById("decryptedText").textContent = data.decrypted;
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          sendBtn.disabled = false;
         }
       }
     </script>
