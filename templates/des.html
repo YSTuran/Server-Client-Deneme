@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>DES Şifreleme</title>
-
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
       body {
         font-family: Arial;
@@ -13,7 +13,6 @@
         align-items: center;
         min-height: 100vh;
       }
-
       .card {
         background: #fff;
         width: 460px;
@@ -21,36 +20,24 @@
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       }
-
-      h1 {
-        text-align: center;
-        color: #2a5298;
-      }
-
-      label {
-        font-weight: bold;
-        margin-top: 12px;
-        display: block;
-      }
-
-      input,
-      select,
-      button {
+      h1 { text-align: center; color: #2a5298; }
+      label { font-weight: bold; margin-top: 12px; display: block; }
+      input, select, button {
         width: 100%;
         padding: 8px;
         margin-top: 6px;
         border-radius: 6px;
         border: 1px solid #ccc;
+        box-sizing: border-box;
       }
-
       button {
         background: #2a5298;
         color: white;
         font-weight: bold;
         cursor: pointer;
         margin-top: 15px;
+        border: none;
       }
-
       .box {
         background: #f4f6fa;
         padding: 10px;
@@ -58,45 +45,44 @@
         margin-top: 8px;
         white-space: pre-wrap;
         word-break: break-all;
+        font-family: monospace;
+        font-size: 12px;
       }
     </style>
   </head>
-
   <body>
     <div class="card">
       <h1>DES Şifreleme</h1>
-
       <label>Metin (8 karakter)</label>
       <input id="text" maxlength="8" placeholder="Aa1!Bb2@" />
-
       <label>Anahtar (7 karakter)</label>
       <input id="key" maxlength="7" placeholder="Key123!" />
-
       <label>İletim Türü</label>
       <select id="transport">
         <option value="none">Yok</option>
         <option value="rsa">RSA</option>
         <option value="ecc">ECC</option>
       </select>
-
-      <button onclick="send()">Şifrele</button>
-
+      <button onclick="send()">Şifrele ve Gönder</button>
       <div id="output" style="display: none">
         <h4>Şifrelenmiş Metin</h4>
         <div class="box" id="encrypted"></div>
-
-        <h4>Çözülmüş Metin</h4>
+        <h4>Sunucudan Dönen (Decrypted)</h4>
         <div class="box" id="decrypted"></div>
-
         <h4>İletim Çıktısı</h4>
         <div class="box" id="transported"></div>
-
-        <h4>İletimden Çözülen</h4>
-        <div class="box" id="transportDecrypted"></div>
       </div>
+      <center><br><a href="/" style="text-decoration:none; color:#2a5298;">← Ana Menü</a></center>
     </div>
 
     <script>
+      const socket = io();
+      const XOR_KEY = 123;
+
+      function unicodeToBase64(str) {
+        return window.btoa(unescape(encodeURIComponent(str)));
+      }
+
       async function send() {
         const text = document.getElementById("text").value;
         const key = document.getElementById("key").value;
@@ -107,32 +93,40 @@
           return;
         }
 
-        const res = await fetch("/des/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, key, transport }),
-        });
+        const xorText = [...text].map(c => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY)).join("");
+        const base64Text = unicodeToBase64(xorText);
 
-        const data = await res.json();
+        try {
+          const res = await fetch("/des/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: base64Text, key, transport }),
+          });
 
-        document.getElementById("output").style.display = "block";
-        document.getElementById("encrypted").textContent = data.encrypted;
-        document.getElementById("decrypted").textContent = data.decrypted;
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
 
-        if (transport === "ecc") {
-          document.getElementById("transported").textContent =
-            "Ciphertext:\n" +
-            data.transported.ciphertext +
-            "\n\nEphemeral Public Key:\n" +
-            data.transported.ephemeral_pub +
-            "\n\nIV:\n" +
-            data.transported.iv;
-        } else {
-          document.getElementById("transported").textContent = data.transported;
+          document.getElementById("output").style.display = "block";
+          document.getElementById("encrypted").textContent = data.encrypted;
+          document.getElementById("decrypted").textContent = data.decrypted;
+
+          let transportInfo = "-";
+          if (transport === "ecc") {
+            transportInfo = `Ciphertext: ${data.transported.ciphertext}\nIV: ${data.transported.iv}`;
+          } else {
+            transportInfo = data.transported;
+          }
+          document.getElementById("transported").textContent = transportInfo;
+
+          socket.emit('client_to_server', {
+            method: `DES (${transport.toUpperCase()})`,
+            text: base64Text,
+            encrypted_raw: data.encrypted,
+            key: key
+          });
+        } catch (err) {
+          alert(err.message);
         }
-
-        document.getElementById("transportDecrypted").textContent =
-          data.transport_decrypted || "-";
       }
     </script>
   </body>

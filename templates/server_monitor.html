@@ -2,9 +2,10 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <title>Crypto Dashboard</title>
+    <title>Server Control Center</title>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
+      /* CSS kısımların aynı kalıyor, hızlıca geçiyorum */
       * {
         box-sizing: border-box;
         margin: 0;
@@ -14,24 +15,25 @@
         font-family: "Segoe UI", sans-serif;
         height: 100vh;
         display: flex;
-        background: #e5ddd5;
+        background: #0a0a0a;
+        color: #eee;
         overflow: hidden;
       }
-
       .sidebar {
         width: 45%;
-        background: #fff;
-        border-right: 2px solid #ddd;
+        background: #111;
+        border-right: 2px solid #333;
         display: flex;
         flex-direction: column;
+        position: relative;
+        z-index: 10;
       }
       .sidebar-header {
         padding: 20px;
-        background: #075e54;
-        color: white;
+        background: #1a1a1a;
+        border-bottom: 2px solid #0f0;
         text-align: center;
       }
-
       .menu-grid {
         padding: 20px;
         display: grid;
@@ -39,47 +41,52 @@
         gap: 10px;
         overflow-y: auto;
       }
-
       .btn-alg {
         padding: 15px;
         border-radius: 8px;
+        border: none;
         color: white;
         cursor: pointer;
         font-weight: bold;
         text-align: center;
         font-size: 14px;
+        opacity: 0.9;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         user-select: none;
-        transition: transform 0.1s;
+      }
+      .btn-alg:hover {
+        opacity: 1;
+        transform: scale(1.02);
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
       }
       .btn-alg:active {
         transform: scale(0.98);
       }
-      .btn-monitor {
-        background: #2c3e50;
-        grid-column: span 2;
-        margin-bottom: 20px;
-      }
-
       .iframe-view {
         width: 100%;
         height: 100%;
         border: none;
         display: none;
+        background: #fff;
         flex-grow: 1;
       }
-
       .chat-panel {
         width: 55%;
         display: flex;
         flex-direction: column;
-        background: #efe7dd;
+        background: #050505;
+        border-left: 1px solid #333;
       }
       .chat-header {
         padding: 15px;
-        background: #075e54;
-        color: white;
+        background: #1a1a1a;
+        color: #0f0;
         display: flex;
         justify-content: space-between;
+        border-bottom: 1px solid #333;
       }
       #chat-window {
         flex-grow: 1;
@@ -89,73 +96,72 @@
         flex-direction: column;
         gap: 10px;
       }
-
       .bubble {
         max-width: 85%;
         padding: 10px 15px;
         border-radius: 10px;
         font-size: 14px;
+        line-height: 1.4;
         position: relative;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        margin-bottom: 5px;
       }
-      .client-msg {
-        align-self: flex-end;
-        background: #dcf8c6;
-        border: 1px solid #c7e9a9;
-      }
-      .server-msg {
+      .incoming {
         align-self: flex-start;
-        background: #fff;
-        border: 1px solid #ddd;
+        background: #1f1f1f;
+        border: 1px solid #333;
+        color: #0f0;
+        border-top-left-radius: 0;
       }
-
+      .outgoing {
+        align-self: flex-end;
+        background: #004d40;
+        border: 1px solid #00695c;
+        color: #e0f2f1;
+        border-top-right-radius: 0;
+      }
       .tag {
         font-size: 10px;
         font-weight: bold;
         display: block;
         margin-bottom: 4px;
         text-transform: uppercase;
-        color: #555;
+        opacity: 0.7;
       }
       .meta {
         font-size: 10px;
-        color: #999;
+        color: #888;
         margin-top: 5px;
         text-align: right;
         display: block;
+      }
+      .highlight {
+        color: #fff;
+        font-weight: bold;
       }
     </style>
   </head>
   <body>
     <div class="sidebar">
       <div class="sidebar-header">
-        <h2 id="tool-title">Şifreleme Algoritmaları</h2>
+        <h2 id="tool-title" style="color: #0f0">SUNUCU YÖNETİMİ</h2>
         <button
-          onclick="resetMenu()"
           id="back-btn"
+          onclick="resetMenu()"
           style="
             display: none;
             margin-top: 10px;
-            padding: 4px 12px;
+            padding: 5px 15px;
             cursor: pointer;
-            background: #128c7e;
-            border: none;
-            color: white;
-            border-radius: 4px;
+            background: #333;
+            color: #fff;
+            border: 1px solid #0f0;
           "
         >
-          ← Menü
+          ← Menüye Dön
         </button>
       </div>
 
       <div class="menu-grid" id="menu-box">
-        <div
-          class="btn-alg btn-monitor"
-          onclick="window.open('/server_monitor', '_blank')"
-        >
-          🚀 SUNUCU MONİTÖRÜNÜ BAŞLAT
-        </div>
-
         <div
           class="btn-alg"
           style="background: #e63946"
@@ -205,15 +211,29 @@
 
     <div class="chat-panel">
       <div class="chat-header">
-        <span>📡 TRAFİK AKIŞI</span><span id="status">● Canlı</span>
+        <span>📡 CANLI VERİ ANALİZİ</span>
+        <span style="color: #fff; font-size: 12px">DURUM: AKTİF</span>
       </div>
-      <div id="chat-window"></div>
+      <div id="chat-window">
+        <div
+          id="wait-msg"
+          style="
+            text-align: center;
+            color: #333;
+            font-size: 12px;
+            margin-top: 20px;
+          "
+        >
+          Trafik bekleniyor...
+        </div>
+      </div>
     </div>
 
     <script>
       const socket = io();
       const XOR_KEY = 123;
 
+      // --- EKSİK OLAN VE BUTONLARI ÇALIŞTIRAN FONKSİYONLAR ---
       function loadTool(url, title) {
         document.getElementById("menu-box").style.display = "none";
         document.getElementById("back-btn").style.display = "inline-block";
@@ -226,42 +246,65 @@
       function resetMenu() {
         document.getElementById("menu-box").style.display = "grid";
         document.getElementById("back-btn").style.display = "none";
-        document.getElementById("tool-title").innerText =
-          "Şifreleme Algoritmaları";
+        document.getElementById("tool-title").innerText = "SUNUCU YÖNETİMİ";
         const frame = document.getElementById("tool-frame");
         frame.style.display = "none";
         frame.src = "";
       }
+      // -------------------------------------------------------
 
-      window.addMessageToChat = function (text, label, type, method) {
+      async function sendMessage() {
+        const msgInput = document.getElementById("message");
+        const msg = msgInput.value;
+        if (!msg) return;
+
+        socket.emit("server_to_client", {
+          method: "SİSTEM",
+          text: msg,
+        });
+        msgInput.value = "";
+      }
+
+      function addLog(text, label, type, method, encrypted = null) {
         const win = document.getElementById("chat-window");
+        const waitMsg = document.getElementById("wait-msg");
+        if (waitMsg) waitMsg.remove(); // İlk mesajda bekleyin yazısını siler
+
         const div = document.createElement("div");
         div.className = `bubble ${type}`;
-        const contentLabel =
-          type === "client-msg" ? "Şifreli Paket:" : "Mesaj:";
-
+        let content = `<strong>Mesaj:</strong> ${text}`;
+        if (encrypted) {
+          content =
+            `<div style="font-size:11px; color:#888;">Paket: ${encrypted}</div>` +
+            content;
+        }
         div.innerHTML = `
-        <span class="tag">${label} [${method}]</span>
-        <div style="word-break:break-all;"><strong>${contentLabel}</strong> ${text}</div>
-        <span class="meta">${new Date().toLocaleTimeString()}</span>
-    `;
+            <span class="tag">${label} [${method}]</span>
+            <div style="word-break:break-all;">${content}</div>
+            <span class="meta">${new Date().toLocaleTimeString()}</span>
+        `;
         win.appendChild(div);
         win.scrollTop = win.scrollHeight;
-      };
+      }
+
+      socket.on("display_on_server", (data) => {
+        addLog(
+          data.original,
+          "📥 İSTEMCİ",
+          "incoming",
+          data.method,
+          data.encrypted
+        );
+      });
 
       socket.on("server_to_client", (data) => {
-        const packet = data.encrypted_resp;
-        if (packet) {
-          try {
-            const rawXor = atob(packet);
-            const decoded = [...rawXor]
-              .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
-              .join("");
-            addMessageToChat(decoded, "SUNUCU", "server-msg", data.method);
-          } catch (e) {
-            console.error("Çözme hatası:", e);
-          }
-        }
+        addLog(
+          data.original,
+          "📤 SİZ (SUNUCU)",
+          "outgoing",
+          data.method,
+          data.encrypted_resp
+        );
       });
     </script>
   </body>

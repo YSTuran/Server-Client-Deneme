@@ -1,14 +1,16 @@
+import base64
 from flask import Blueprint, render_template, request, jsonify
 from cipher.caesar import caesar_encrypt, caesar_decrypt
 
 caesar_bp = Blueprint("caesar_bp", __name__)
 SERVER_XOR_KEY = 123
 
+
 def xor_text(text, key):
     return "".join(chr(ord(c) ^ key) for c in text)
 
 
-@caesar_bp.route("/caesar", methods=["GET"])
+@caesar_bp.route("/caesar")
 def page():
     return render_template("caesar.html")
 
@@ -16,15 +18,16 @@ def page():
 @caesar_bp.route("/caesar/send", methods=["POST"])
 def caesar_send():
     data = request.get_json()
-    client_xor_text = data.get("text", "")
-    shift = int(data.get("shift", 0))
+    encoded = data.get("text")
+    shift = int(data.get("shift"))
 
-    original_text = xor_text(client_xor_text, SERVER_XOR_KEY)
-    encrypted = caesar_encrypt(original_text, shift)
+    raw_xor = base64.b64decode(encoded).decode()
+    original = xor_text(raw_xor, SERVER_XOR_KEY)
+
+    encrypted = caesar_encrypt(original, shift)
     decrypted = caesar_decrypt(encrypted, shift)
-    decrypted_client_safe = xor_text(decrypted, SERVER_XOR_KEY)
 
     return jsonify({
         "encrypted": encrypted,
-        "decrypted": decrypted_client_safe
+        "decrypted": decrypted
     })

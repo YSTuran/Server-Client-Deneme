@@ -3,7 +3,6 @@ from flask import Blueprint, render_template, request, jsonify
 from cipher.substitution import substitution_encrypt, substitution_decrypt
 
 substitution_bp = Blueprint("substitution_bp", __name__)
-
 SERVER_XOR_KEY = 123
 
 def xor_text(text, key):
@@ -25,16 +24,14 @@ def substitution_send():
     try:
         xor_text_bytes = base64.b64decode(encoded_xor_text)
         xor_text_from_client = xor_text_bytes.decode('utf-8')
-        
         original_text = xor_text(xor_text_from_client, SERVER_XOR_KEY)
 
         encrypted = substitution_encrypt(original_text, key)
         decrypted = substitution_decrypt(encrypted, key)
 
+        return jsonify({
+            "encrypted": encrypted,
+            "decrypted": decrypted
+        })
     except Exception as e:
-        return jsonify({"error": f"Şifreleme hatası: {str(e)}"}), 500
-
-    return jsonify({
-        "encrypted": encrypted,
-        "decrypted": decrypted
-    })
+        return jsonify({"error": str(e)}), 500

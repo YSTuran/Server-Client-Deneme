@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Caesar Şifreleme</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
       body {
         font-family: "Segoe UI", sans-serif;
@@ -11,7 +12,6 @@
         display: flex;
         justify-content: center;
       }
-
       .card {
         width: 100%;
         max-width: 600px;
@@ -19,69 +19,36 @@
         padding: 30px 35px;
         border-radius: 16px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        animation: fadeIn 0.4s ease;
       }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
       h1 {
         text-align: center;
         color: #333;
-        margin-bottom: 15px;
       }
-
       label {
         font-weight: 600;
         margin-top: 12px;
         display: block;
-        font-size: 15px;
       }
-
       textarea,
       input {
         width: 100%;
         padding: 10px;
         margin-top: 6px;
-        font-size: 15px;
         border: 1px solid #ccc;
         border-radius: 8px;
-        transition: 0.2s;
+        box-sizing: border-box;
       }
-
-      textarea:focus,
-      input:focus {
-        border-color: #007bff;
-        box-shadow: 0 0 6px rgba(0, 123, 255, 0.3);
-      }
-
       button {
         width: 100%;
         margin-top: 20px;
         padding: 12px;
-        font-size: 16px;
-        font-weight: bold;
         background-color: #007bff;
         color: white;
         border: none;
         border-radius: 10px;
         cursor: pointer;
-        transition: 0.25s;
+        font-weight: bold;
       }
-
-      button:hover {
-        background-color: #0056b3;
-        transform: scale(1.03);
-      }
-
       .output {
         margin-top: 25px;
         padding: 15px;
@@ -89,106 +56,81 @@
         border-left: 4px solid #007bff;
         border-radius: 10px;
       }
-
       pre {
         background: #eef1f5;
         padding: 12px;
         border-radius: 8px;
-        font-size: 15px;
-      }
-
-      .back {
-        text-align: center;
-        margin-top: 25px;
-      }
-
-      .back a {
-        color: #007bff;
-        font-weight: bold;
-        text-decoration: none;
-        transition: 0.2s;
-      }
-
-      .back a:hover {
-        color: #004b99;
+        white-space: pre-wrap;
       }
     </style>
   </head>
-
   <body>
     <div class="card">
       <h1>Caesar Şifreleme</h1>
-
       <label>Mesaj:</label>
-      <textarea
-        id="message"
-        rows="3"
-        placeholder="Metni buraya yaz..."
-      ></textarea>
-
+      <textarea id="message" rows="3"></textarea>
       <label>Anahtar (Shift):</label>
-      <input type="number" id="key" placeholder="Örn: 3" />
-
-      <button onclick="sendMessage()">Şifrele</button>
-
+      <input type="number" id="key" />
+      <button onclick="sendMessage()">Şifrele ve Gönder</button>
       <div id="output" class="output" style="display: none">
-        <h3>Sonuç:</h3>
-
         <p><strong>Şifrelenmiş Metin:</strong></p>
         <pre id="encryptedText"></pre>
-
-        <p><strong>Çözülmüş Metin:</strong></p>
+        <p><strong>Çözülmüş Metin</strong></p>
         <pre id="decryptedText"></pre>
       </div>
-
-      <div class="back">
-        <a href="{{ url_for('main_bp.index') }}">← Ana Menüye Dön</a>
-      </div>
+      <center><br /><a href="/">← Ana Menü</a></center>
     </div>
 
     <script>
+      const socket = io();
       const XOR_KEY = 123;
 
-      function xorText(text, key) {
-        let output = "";
-        for (let i = 0; i < text.length; i++) {
-          output += String.fromCharCode(text.charCodeAt(i) ^ key);
-        }
-        return output;
-      }
-
       async function sendMessage() {
-        const message = document.getElementById("message").value.trim();
-        const key = Number(document.getElementById("key").value.trim()) || 0;
+        const msgInput = document.getElementById("message");
+        const keyInput = document.getElementById("key");
+        const msg = msgInput.value;
+        const shift = keyInput.value;
 
-        if (!message) {
-          alert("Lütfen bir mesaj girin.");
-          return;
-        }
-        const xorMessage = xorText(message, XOR_KEY);
+        if (!msg || !shift) return;
 
-        try {
-          const response = await fetch("/caesar/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: xorMessage, shift: key }),
+        const xor = [...msg]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
+        const packet = btoa(unescape(encodeURIComponent(xor)));
+
+        const isMonitor =
+          window.parent.location.pathname.includes("monitor") ||
+          window.location.pathname.includes("monitor");
+
+        if (isMonitor) {
+          socket.emit("server_to_client", {
+            method: "Sezar",
+            text: msg,
           });
-
-          if (!response.ok) {
-            alert("Sunucu hatası!");
-            return;
+        } else {
+          if (window.parent && window.parent.addMessageToChat) {
+            window.parent.addMessageToChat(
+              packet,
+              "SİZ",
+              "client-msg",
+              "Sezar"
+            );
           }
 
-          const data = await response.json();
-          const decrypted = xorText(data.decrypted, XOR_KEY);
+          const currentPath = window.location.pathname + "/send";
+          await fetch(currentPath, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: packet, shift }),
+          });
 
-          document.getElementById("output").style.display = "block";
-          document.getElementById("encryptedText").textContent = data.encrypted;
-          document.getElementById("decryptedText").textContent = decrypted;
-        } catch (error) {
-          console.error(error);
-          alert("İstek gönderilirken hata oluştu!");
+          socket.emit("client_to_server", {
+            method: "Sezar",
+            text: packet,
+          });
         }
+
+        msgInput.value = "";
       }
     </script>
   </body>

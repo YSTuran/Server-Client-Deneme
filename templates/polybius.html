@@ -3,17 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <title>Polybius Cipher</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-family: "Segoe UI", sans-serif;
         background: #f0f2f5;
         display: flex;
         flex-direction: column;
         align-items: center;
         padding: 30px;
-      }
-      h1 {
-        color: #333;
       }
       .container {
         background: #fff;
@@ -23,11 +21,7 @@
         max-width: 600px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       }
-      label {
-        font-weight: bold;
-        margin-top: 10px;
-        display: block;
-      }
+      label { font-weight: bold; margin-top: 10px; display: block; }
       textarea {
         width: 100%;
         height: 100px;
@@ -35,8 +29,6 @@
         margin-top: 5px;
         border: 1px solid #ccc;
         border-radius: 8px;
-        resize: vertical;
-        font-family: monospace;
         box-sizing: border-box;
       }
       button {
@@ -47,63 +39,36 @@
         color: white;
         border: none;
         border-radius: 8px;
-        font-size: 16px;
         cursor: pointer;
-        transition: background 0.2s;
-      }
-      button:hover {
-        background: #0056b3;
       }
       .output {
         margin-top: 20px;
         padding: 15px;
         background: #f8f9fa;
         border-radius: 8px;
-        border: 1px solid #e9ecef;
       }
-      pre {
-        background: #333;
-        color: #0f0;
-        padding: 15px;
-        border-radius: 6px;
-        overflow-x: auto;
-        white-space: pre-wrap;
-      }
-      a {
-        display: inline-block;
-        margin-top: 20px;
-        color: #007bff;
-        text-decoration: none;
-      }
-      a:hover {
-        text-decoration: underline;
-      }
+      pre { background: #333; color: #0f0; padding: 15px; border-radius: 6px; white-space: pre-wrap; }
     </style>
   </head>
   <body>
     <h1>Polybius Şifreleme</h1>
-
     <div class="container">
       <label for="message">Mesajınız:</label>
-      <textarea
-        id="message"
-        placeholder="Metin Girin."
-      ></textarea>
-
+      <textarea id="message" placeholder="Metin Girin."></textarea>
       <button onclick="sendMessage()" id="sendBtn">Şifrele ve Gönder</button>
-
       <div class="output" id="output" style="display: none">
         <h3>Şifreli Metin:</h3>
         <pre id="encryptedText"></pre>
-
-        <h3>Çözülmüş Metin:</h3>
+        <h3>Sunucudan Dönen (Decrypted):</h3>
         <pre id="decryptedText"></pre>
       </div>
-
-      <a href="/">← Ana Menü</a>
+      <center><br><a href="/" style="text-decoration:none; color:#007bff;">← Ana Menü</a></center>
     </div>
 
     <script>
+      const socket = io();
+      const XOR_KEY = 123;
+
       function unicodeToBase64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));
       }
@@ -113,20 +78,10 @@
         const sendBtn = document.getElementById("sendBtn");
         const text = messageInput.value.trim();
 
-        if (!text) {
-          alert("Lütfen bir metin girin!");
-          return;
-        }
+        if (!text) return;
 
         sendBtn.disabled = true;
-        sendBtn.innerText = "İşleniyor...";
-
-        const XOR_KEY = 123;
-
-        const xorText = [...text]
-          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
-          .join("");
-
+        const xorText = [...text].map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY)).join("");
         const base64Text = unicodeToBase64(xorText);
 
         try {
@@ -137,20 +92,22 @@
           });
 
           const data = await res.json();
-
-          if (!res.ok) {
-            throw new Error(data.error || "Sunucu hatası!");
-          }
+          if (!res.ok) throw new Error(data.error);
 
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent = data.encrypted;
           document.getElementById("decryptedText").textContent = data.decrypted;
+
+          socket.emit('client_to_server', {
+            method: 'Polybius Cipher',
+            text: base64Text,
+            encrypted_raw: data.encrypted,
+            key: '5x5 Grid'
+          });
         } catch (error) {
-          console.error(error);
           alert("Hata: " + error.message);
         } finally {
           sendBtn.disabled = false;
-          sendBtn.innerText = "Şifrele ve Gönder";
         }
       }
     </script>

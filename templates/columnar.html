@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Columnar Transposition</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -65,18 +66,21 @@
       <textarea id="message"></textarea>
       <label>Anahtar:</label>
       <input id="key" type="text" />
-      <button onclick="sendMessage()" id="sendBtn">Gönder</button>
+      <button onclick="sendMessage()" id="sendBtn">Şifrele ve Gönder</button>
 
       <div class="output" id="output" style="display: none">
         <h3>Şifrelenmiş Metin:</h3>
         <pre id="encryptedText"></pre>
-        <h3>Çözülmüş Metin:</h3>
+        <h3>Sunucudan Dönen (Decrypted):</h3>
         <pre id="decryptedText"></pre>
       </div>
-      <a href="/">← Ana Menü</a>
+      <center><br><a href="/">← Ana Menü</a></center>
     </div>
 
     <script>
+      const socket = io();
+      const XOR_KEY = 123;
+
       function unicodeToBase64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));
       }
@@ -92,7 +96,6 @@
         }
 
         sendBtn.disabled = true;
-        const XOR_KEY = 123;
         const xorText = [...text]
           .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
           .join("");
@@ -110,6 +113,14 @@
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent = data.encrypted;
           document.getElementById("decryptedText").textContent = data.decrypted;
+
+          socket.emit('client_to_server', {
+            method: 'Columnar Transposition',
+            text: base64Text,
+            encrypted_raw: data.encrypted,
+            key: key
+          });
+
         } catch (e) {
           alert(e.message);
         } finally {

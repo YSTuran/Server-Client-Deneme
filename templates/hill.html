@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Hill Şifreleme</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -12,9 +13,6 @@
         align-items: center;
         padding: 30px;
       }
-      h1 {
-        color: #333;
-      }
       .container {
         background: #fff;
         padding: 25px 35px;
@@ -22,23 +20,14 @@
         width: 500px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       }
-      label {
-        font-weight: bold;
-        margin-top: 10px;
-        display: block;
-      }
-      input,
-      textarea {
+      label { font-weight: bold; margin-top: 10px; display: block; }
+      input, textarea {
         width: 100%;
         padding: 10px;
         margin-top: 5px;
         border: 1px solid #ccc;
         border-radius: 8px;
-        font-size: 14px;
-      }
-      textarea {
-        height: 100px;
-        resize: vertical;
+        box-sizing: border-box;
       }
       button {
         margin-top: 15px;
@@ -48,11 +37,7 @@
         color: white;
         border: none;
         border-radius: 8px;
-        font-size: 16px;
         cursor: pointer;
-      }
-      button:hover {
-        background: #0056b3;
       }
       .output {
         margin-top: 20px;
@@ -60,21 +45,7 @@
         background: #f8f9fa;
         border-radius: 8px;
       }
-      pre {
-        background: #eee;
-        padding: 10px;
-        border-radius: 6px;
-        overflow-x: auto;
-      }
-      a {
-        display: block;
-        margin-top: 20px;
-        color: #007bff;
-        text-decoration: none;
-      }
-      a:hover {
-        text-decoration: underline;
-      }
+      pre { background: #eee; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
     </style>
   </head>
   <body>
@@ -82,51 +53,61 @@
     <div class="container">
       <label>Mesaj:</label>
       <textarea id="message"></textarea>
-
       <label>Matris Anahtarı (örn: 3,3,2,5):</label>
       <input id="matrix" placeholder="3,3,2,5" />
-
-      <button onclick="sendMessage()">Gönder</button>
-
+      <button onclick="sendMessage()">Şifrele ve Gönder</button>
       <div class="output" id="output" style="display: none">
         <h3>Şifrelenmiş Metin:</h3>
-        <pre id="encryptedText">–</pre>
-        <h3>Çözülmüş Metin:</h3>
-        <pre id="decryptedText">–</pre>
+        <pre id="encryptedText"></pre>
+        <h3>Sunucudan Dönen (Decrypted):</h3>
+        <pre id="decryptedText"></pre>
       </div>
-
-      <a href="{{ url_for('main_bp.index') }}">← Ana Menü</a>
+      <center><br><a href="/" style="text-decoration:none; color:#007bff;">← Ana Menü</a></center>
     </div>
 
     <script>
+      const socket = io();
+      const XOR_KEY = 123;
+
+      function unicodeToBase64(str) {
+        return window.btoa(unescape(encodeURIComponent(str)));
+      }
+
       async function sendMessage() {
         const text = document.getElementById("message").value.trim();
         const matrix = document.getElementById("matrix").value.trim();
 
         if (!text || !matrix) {
-          alert("Metin ve matrisi girin!");
+          alert("Eksik bilgi!");
           return;
         }
 
-        const res = await fetch("/hill/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text: text,
-            matrix: matrix,
-          }),
-        });
+        const xorText = [...text].map(c => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY)).join("");
+        const base64Text = unicodeToBase64(xorText);
 
-        const data = await res.json();
+        try {
+          const res = await fetch("/hill/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: base64Text, matrix: matrix }),
+          });
 
-        if (!res.ok) {
-          alert(data.error);
-          return;
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+
+          document.getElementById("output").style.display = "block";
+          document.getElementById("encryptedText").textContent = data.encrypted;
+          document.getElementById("decryptedText").textContent = data.decrypted;
+
+          socket.emit('client_to_server', {
+            method: 'Hill Cipher',
+            text: base64Text,
+            encrypted_raw: data.encrypted,
+            key: matrix
+          });
+        } catch (e) {
+          alert(e.message);
         }
-
-        document.getElementById("output").style.display = "block";
-        document.getElementById("encryptedText").textContent = data.encrypted;
-        document.getElementById("decryptedText").textContent = data.decrypted;
       }
     </script>
   </body>
