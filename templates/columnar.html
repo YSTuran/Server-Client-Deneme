@@ -74,7 +74,7 @@
         <h3>Sunucudan Dönen (Decrypted):</h3>
         <pre id="decryptedText"></pre>
       </div>
-      <center><br><a href="/">← Ana Menü</a></center>
+      <center><br /><a href="/">← Ana Menü</a></center>
     </div>
 
     <script>
@@ -86,12 +86,27 @@
       }
 
       async function sendMessage() {
-        const text = document.getElementById("message").value;
-        const key = document.getElementById("key").value.trim();
+        const textInput = document.getElementById("message");
+        const keyInput = document.getElementById("key");
         const sendBtn = document.getElementById("sendBtn");
+
+        const text = textInput.value;
+        const key = keyInput.value.trim();
 
         if (!text || !key) {
           alert("Eksik bilgi!");
+          return;
+        }
+
+        const isMonitor =
+          window.parent && window.parent.location.pathname.includes("monitor");
+
+        if (isMonitor) {
+          socket.emit("server_to_client", {
+            method: "Columnar Transposition",
+            text: text,
+          });
+          textInput.value = "";
           return;
         }
 
@@ -100,6 +115,15 @@
           .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
           .join("");
         const base64Text = unicodeToBase64(xorText);
+
+        if (window.parent && window.parent.addMessageToChat) {
+          window.parent.addMessageToChat(
+            base64Text,
+            "SİZ",
+            "client-msg",
+            "Columnar"
+          );
+        }
 
         try {
           const res = await fetch("/columnar/send", {
@@ -114,13 +138,14 @@
           document.getElementById("encryptedText").textContent = data.encrypted;
           document.getElementById("decryptedText").textContent = data.decrypted;
 
-          socket.emit('client_to_server', {
-            method: 'Columnar Transposition',
+          socket.emit("client_to_server", {
+            method: "Columnar Transposition",
             text: base64Text,
             encrypted_raw: data.encrypted,
-            key: key
+            key: key,
           });
 
+          textInput.value = "";
         } catch (e) {
           alert(e.message);
         } finally {

@@ -165,44 +165,73 @@
         <div
           class="btn-alg"
           style="background: #e63946"
-          onclick="loadTool('/caesar', 'Sezar')"
+          onclick="loadTool('/caesar', 'Sezar (Sunucu Gönderimi)')"
         >
           Sezar
         </div>
+
         <div
           class="btn-alg"
           style="background: #457b9d"
-          onclick="loadTool('/vigenere', 'Vigenere')"
+          onclick="loadTool('/vigenere', 'Vigenere (Sunucu Gönderimi)')"
         >
           Vigenere
         </div>
+
         <div
           class="btn-alg"
           style="background: #2a9d8f"
-          onclick="loadTool('/railfence', 'Rail Fence')"
+          onclick="loadTool('/railfence', 'Rail Fence (Sunucu Gönderimi)')"
         >
           Rail Fence
         </div>
+
         <div
           class="btn-alg"
           style="background: #f4a261"
-          onclick="loadTool('/substitution', 'Substitution')"
+          onclick="loadTool('/substitution', 'Substitution (Sunucu Gönderimi)')"
         >
           Substitution
         </div>
+
         <div
           class="btn-alg"
           style="background: #8d44ad"
-          onclick="loadTool('/hill', 'Hill')"
+          onclick="loadTool('/hill', 'Hill (Sunucu Gönderimi)')"
         >
           Hill
         </div>
+
         <div
           class="btn-alg"
           style="background: #1d3557"
-          onclick="loadTool('/des', 'DES')"
+          onclick="loadTool('/des', 'DES (Sunucu Gönderimi)')"
         >
           DES
+        </div>
+
+        <div
+          class="btn-alg"
+          style="background: #264653"
+          onclick="loadTool('/aes', 'AES-128 (Sunucu Gönderimi)')"
+        >
+          AES-128
+        </div>
+
+        <div
+          class="btn-alg"
+          style="background: #e76f51"
+          onclick="loadTool('/columnar', 'Columnar (Sunucu Gönderimi)')"
+        >
+          Columnar
+        </div>
+
+        <div
+          class="btn-alg"
+          style="background: #6d597a"
+          onclick="loadTool('/polybius', 'Polybius (Sunucu Gönderimi)')"
+        >
+          Polybius
         </div>
       </div>
 
@@ -233,14 +262,19 @@
       const socket = io();
       const XOR_KEY = 123;
 
-      // --- EKSİK OLAN VE BUTONLARI ÇALIŞTIRAN FONKSİYONLAR ---
       function loadTool(url, title) {
-        document.getElementById("menu-box").style.display = "none";
-        document.getElementById("back-btn").style.display = "inline-block";
-        document.getElementById("tool-title").innerText = title;
+        const menuBox = document.getElementById("menu-box");
+        const backBtn = document.getElementById("back-btn");
+        const toolTitle = document.getElementById("tool-title");
         const frame = document.getElementById("tool-frame");
-        frame.src = url;
-        frame.style.display = "block";
+
+        if (menuBox) menuBox.style.display = "none";
+        if (backBtn) backBtn.style.display = "inline-block";
+        if (toolTitle) toolTitle.innerText = title;
+        if (frame) {
+          frame.src = url;
+          frame.style.display = "block";
+        }
       }
 
       function resetMenu() {
@@ -251,38 +285,46 @@
         frame.style.display = "none";
         frame.src = "";
       }
-      // -------------------------------------------------------
 
       async function sendMessage() {
         const msgInput = document.getElementById("message");
-        const msg = msgInput.value;
+        if (!msgInput) {
+          console.error("Hata: 'message' ID'li input bulunamadı!");
+          return;
+        }
+
+        const msg = msgInput.value.trim();
         if (!msg) return;
 
         socket.emit("server_to_client", {
           method: "SİSTEM",
           text: msg,
         });
+
         msgInput.value = "";
       }
 
       function addLog(text, label, type, method, encrypted = null) {
         const win = document.getElementById("chat-window");
         const waitMsg = document.getElementById("wait-msg");
-        if (waitMsg) waitMsg.remove(); // İlk mesajda bekleyin yazısını siler
+        if (waitMsg) waitMsg.remove();
 
         const div = document.createElement("div");
         div.className = `bubble ${type}`;
+
         let content = `<strong>Mesaj:</strong> ${text}`;
         if (encrypted) {
           content =
-            `<div style="font-size:11px; color:#888;">Paket: ${encrypted}</div>` +
+            `<div style="font-size:11px; color:#888; margin-bottom:4px;">Paket: ${encrypted}</div>` +
             content;
         }
+
         div.innerHTML = `
-            <span class="tag">${label} [${method}]</span>
-            <div style="word-break:break-all;">${content}</div>
-            <span class="meta">${new Date().toLocaleTimeString()}</span>
-        `;
+        <span class="tag" style="display:block; font-size:10px; opacity:0.7;">${label} [${method}]</span>
+        <div style="word-break:break-all;">${content}</div>
+        <span class="meta" style="display:block; font-size:9px; text-align:right; margin-top:4px;">${new Date().toLocaleTimeString()}</span>
+    `;
+
         win.appendChild(div);
         win.scrollTop = win.scrollHeight;
       }

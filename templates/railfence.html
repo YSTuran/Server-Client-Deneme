@@ -20,7 +20,9 @@
         width: 500px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
       }
-      input, textarea, button {
+      input,
+      textarea,
+      button {
         width: 100%;
         padding: 8px;
         margin-top: 5px;
@@ -44,7 +46,12 @@
         border-radius: 8px;
         border: 1px solid #ddd;
       }
-      pre { background: #eee; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
+      pre {
+        background: #eee;
+        padding: 10px;
+        border-radius: 6px;
+        white-space: pre-wrap;
+      }
     </style>
   </head>
   <body>
@@ -61,7 +68,11 @@
         <h3>Sunucudan Dönen (Decrypted):</h3>
         <pre id="decryptedText"></pre>
       </div>
-      <center><br><a href="/" style="text-decoration:none; color:#007bff;">← Ana Menü</a></center>
+      <center>
+        <br /><a href="/" style="text-decoration: none; color: #007bff"
+          >← Ana Menü</a
+        >
+      </center>
     </div>
 
     <script>
@@ -73,15 +84,41 @@
       }
 
       async function sendMessage() {
-        const text = document.getElementById("message").value.trim();
-        const keyVal = document.getElementById("key").value;
+        const msgInput = document.getElementById("message");
+        const keyInput = document.getElementById("key");
         const sendBtn = document.getElementById("sendBtn");
+
+        const text = msgInput.value.trim();
+        const keyVal = keyInput.value;
 
         if (!text) return;
 
+        const isMonitor =
+          window.parent && window.parent.location.pathname.includes("monitor");
+
+        if (isMonitor) {
+          socket.emit("server_to_client", {
+            method: "Rail Fence",
+            text: text,
+          });
+          msgInput.value = "";
+          return;
+        }
+
         sendBtn.disabled = true;
-        const xorText = [...text].map(c => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY)).join("");
+        const xorText = [...text]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
         const base64Text = unicodeToBase64(xorText);
+
+        if (window.parent && window.parent.addMessageToChat) {
+          window.parent.addMessageToChat(
+            base64Text,
+            "SİZ",
+            "client-msg",
+            "Rail Fence"
+          );
+        }
 
         try {
           const res = await fetch("/railfence/send", {
@@ -97,12 +134,14 @@
           document.getElementById("encryptedText").textContent = data.encrypted;
           document.getElementById("decryptedText").textContent = data.decrypted;
 
-          socket.emit('client_to_server', {
-            method: 'Rail Fence',
+          socket.emit("client_to_server", {
+            method: "Rail Fence",
             text: base64Text,
             encrypted_raw: data.encrypted,
-            key: keyVal
+            key: keyVal,
           });
+
+          msgInput.value = "";
         } catch (error) {
           alert("Hata: " + error.message);
         } finally {

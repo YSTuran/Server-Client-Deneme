@@ -1,42 +1,96 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>AES Cipher - İstemci</title>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #f0f2f5; padding: 30px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: #fff; padding: 25px; border-radius: 12px; width: 520px; box-shadow: 0 0 12px rgba(0,0,0,0.1); }
-        h2 { color: #1d3557; text-align: center; }
-        label { font-weight: bold; display: block; margin-top: 10px; }
-        input, select, button { width: 100%; padding: 10px; margin-top: 6px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background: #1d3557; color: white; margin-top: 15px; cursor: pointer; border: none; font-weight: bold; }
-        button:hover { background: #457b9d; }
-        .box { background: #f8f9fa; padding: 10px; border-radius: 6px; margin-top: 10px; word-break: break-all; white-space: pre-wrap; border: 1px solid #eee; font-family: monospace; font-size: 13px; }
-        .back-link { margin-top: 20px; text-decoration: none; color: #1d3557; }
+      body {
+        font-family: Arial, sans-serif;
+        background: #f0f2f5;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .container {
+        background: #fff;
+        padding: 25px;
+        border-radius: 12px;
+        width: 520px;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        color: #1d3557;
+        text-align: center;
+      }
+      label {
+        font-weight: bold;
+        display: block;
+        margin-top: 10px;
+      }
+      input,
+      select,
+      button {
+        width: 100%;
+        padding: 10px;
+        margin-top: 6px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+      }
+      button {
+        background: #1d3557;
+        color: white;
+        margin-top: 15px;
+        cursor: pointer;
+        border: none;
+        font-weight: bold;
+      }
+      button:hover {
+        background: #457b9d;
+      }
+      .box {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 6px;
+        margin-top: 10px;
+        word-break: break-all;
+        white-space: pre-wrap;
+        border: 1px solid #eee;
+        font-family: monospace;
+        font-size: 13px;
+      }
+      .back-link {
+        margin-top: 20px;
+        text-decoration: none;
+        color: #1d3557;
+      }
     </style>
-</head>
+  </head>
 
-<body>
-<div class="container">
-    <h2>AES-128 Şifreleme</h2>
+  <body>
+    <div class="container">
+      <h2>AES-128 Şifreleme</h2>
 
-    <label>Metin (16 karakter/byte):</label>
-    <input id="text" maxlength="16" placeholder="Örn: gizli mesaj 123">
+      <label>Metin (16 karakter/byte):</label>
+      <input id="text" maxlength="16" placeholder="Örn: gizli mesaj 123" />
 
-    <label>Anahtar (16 karakter):</label>
-    <input id="key" maxlength="16" placeholder="16 karakterlik key">
+      <label>Anahtar (16 karakter):</label>
+      <input id="key" maxlength="16" placeholder="16 karakterlik key" />
 
-    <label>İletim Yöntemi:</label>
-    <select id="transport">
+      <label>İletim Yöntemi:</label>
+      <select id="transport">
         <option value="none">Yok (Sadece AES)</option>
         <option value="rsa">RSA</option>
         <option value="ecc">ECC</option>
-    </select>
+      </select>
 
-    <button onclick="sendData()" id="btnSend">Şifrele ve Sunucuya Gönder</button>
+      <button onclick="sendData()" id="btnSend">
+        Şifrele ve Sunucuya Gönder
+      </button>
 
-    <div id="output" style="display:none">
+      <div id="output" style="display: none">
         <h4>AES Şifreli (Hex/Base64):</h4>
         <div class="box" id="encrypted"></div>
 
@@ -45,70 +99,98 @@
 
         <h4>İletim (Transport) Detayları:</h4>
         <div class="box" id="transported"></div>
+      </div>
+
+      <center><a href="/" class="back-link">← Ana Menü</a></center>
     </div>
 
-    <center><a href="/" class="back-link">← Ana Menü</a></center>
-</div>
+    <script>
+      const socket = io();
+      const XOR_KEY = 123;
 
-<script>
-    const socket = io(); 
-    const XOR_KEY = 123;
-
-    function unicodeToBase64(str) {
+      function unicodeToBase64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));
-    }
+      }
 
-    async function sendData() {
-        const text = document.getElementById("text").value;
-        const key = document.getElementById("key").value;
-        const transport = document.getElementById("transport").value;
+      async function sendData() {
+        const textInput = document.getElementById("text");
+        const keyInput = document.getElementById("key");
+        const transportSelect = document.getElementById("transport");
         const btn = document.getElementById("btnSend");
 
+        const text = textInput.value;
+        const key = keyInput.value;
+        const transport = transportSelect.value;
+
         if (!text || !key) {
-            alert("Metin ve anahtar alanlarını doldurun!");
-            return;
+          alert("Metin ve anahtar alanlarını doldurun!");
+          return;
+        }
+
+        const isMonitor =
+          window.parent && window.parent.location.pathname.includes("monitor");
+
+        if (isMonitor) {
+          socket.emit("server_to_client", {
+            method: `AES-128 (${transport.toUpperCase()})`,
+            text: text,
+          });
+          textInput.value = "";
+          return;
         }
 
         btn.disabled = true;
 
-        const xorText = [...text].map(c => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY)).join("");
+        const xorText = [...text]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
         const base64Xor = unicodeToBase64(xorText);
 
-        try {
-            const res = await fetch("/aes/send", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ text: base64Xor, key, transport })
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-
-            document.getElementById("output").style.display = "block";
-            document.getElementById("encrypted").textContent = data.encrypted;
-            document.getElementById("decrypted").textContent = data.decrypted;
-
-            let transportInfo = "-";
-            if (transport === "ecc") {
-                transportInfo = `Ciphertext: ${data.transported.ciphertext}\nIV: ${data.transported.iv}\nECC Decrypted: ${data.ecc_decrypted}`;
-            } else if (transport === "rsa") {
-                transportInfo = `RSA Encrypted Key: ${data.transported}`;
-            }
-            document.getElementById("transported").textContent = transportInfo;
-
-            socket.emit('client_to_server', {
-                method: `AES-128 (${transport.toUpperCase()})`,
-                text: base64Xor,
-                encrypted_raw: data.encrypted,
-                key: key
-            });
-
-        } catch (err) {
-            alert("Hata: " + err.message);
-        } finally {
-            btn.disabled = false;
+        if (window.parent && window.parent.addMessageToChat) {
+          window.parent.addMessageToChat(
+            base64Xor,
+            "SİZ",
+            "client-msg",
+            `AES-${transport.toUpperCase()}`
+          );
         }
-    }
-</script>
-</body>
+
+        try {
+          const res = await fetch("/aes/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: base64Xor, key, transport }),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+
+          document.getElementById("output").style.display = "block";
+          document.getElementById("encrypted").textContent = data.encrypted;
+          document.getElementById("decrypted").textContent = data.decrypted;
+
+          let transportInfo = "-";
+          if (transport === "ecc") {
+            transportInfo = `Ciphertext: ${data.transported.ciphertext}\nIV: ${data.transported.iv}\nECC Decrypted: ${data.ecc_decrypted}`;
+          } else if (transport === "rsa") {
+            transportInfo = `RSA Encrypted Key: ${data.transported}`;
+          }
+          document.getElementById("transported").textContent = transportInfo;
+
+          socket.emit("client_to_server", {
+            method: `AES-128 (${transport.toUpperCase()})`,
+            text: base64Xor,
+            encrypted_raw: data.encrypted,
+            key: key,
+          });
+
+          textInput.value = "";
+        } catch (err) {
+          alert("Hata: " + err.message);
+        } finally {
+          btn.disabled = false;
+        }
+      }
+    </script>
+  </body>
 </html>
