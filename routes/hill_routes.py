@@ -15,23 +15,24 @@ def page():
 @hill_bp.route("/hill/send", methods=["POST"])
 def hill_send():
     data = request.get_json()
-    encoded_xor_text = data.get("text", "").strip()
+    encoded_xor_text = data.get("text", "").strip() 
     matrix_str = data.get("matrix", "").strip()
 
     try:
         raw_xor_bytes = base64.b64decode(encoded_xor_text)
         raw_xor_text = raw_xor_bytes.decode('utf-8')
-        original_text = xor_text(raw_xor_text, SERVER_XOR_KEY)
-        
-        original_text = original_text.upper().replace(" ", "")
+
         key = [int(x) for x in matrix_str.split(",")]
 
-        encrypted = hill_encrypt(original_text, key)
-        decrypted = hill_decrypt(encrypted, key)
+        encrypted_final = hill_encrypt(raw_xor_text, key)
+
+        decrypted_hill = hill_decrypt(encrypted_final, key)
+
+        original_plain_text = xor_text(decrypted_hill, SERVER_XOR_KEY)
 
         return jsonify({
-            "encrypted": encrypted,
-            "decrypted": decrypted
+            "encrypted": encrypted_final,
+            "decrypted": original_plain_text 
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 400

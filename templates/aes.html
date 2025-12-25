@@ -91,7 +91,7 @@
       </button>
 
       <div id="output" style="display: none">
-        <h4>AES Şifreli (Hex/Base64):</h4>
+        <h4>AES Şifreli:</h4>
         <div class="box" id="encrypted"></div>
 
         <h4>Çözülmüş Metin:</h4>
@@ -100,8 +100,6 @@
         <h4>İletim (Transport) Detayları:</h4>
         <div class="box" id="transported"></div>
       </div>
-
-      
     </div>
 
     <script>
@@ -128,16 +126,9 @@
         }
 
         const isMonitor =
-          window.parent && window.parent.location.pathname.includes("monitor");
-
-        if (isMonitor) {
-          socket.emit("server_to_client", {
-            method: `AES-128 (${transport.toUpperCase()})`,
-            text: text,
-          });
-          textInput.value = "";
-          return;
-        }
+          window.location.pathname.includes("monitor") ||
+          (window.parent &&
+            window.parent.location.pathname.includes("monitor"));
 
         btn.disabled = true;
 
@@ -145,15 +136,6 @@
           .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
           .join("");
         const base64Xor = unicodeToBase64(xorText);
-
-        if (window.parent && window.parent.addMessageToChat) {
-          window.parent.addMessageToChat(
-            base64Xor,
-            "SİZ",
-            "client-msg",
-            `AES-${transport.toUpperCase()}`
-          );
-        }
 
         try {
           const res = await fetch("/aes/send", {
@@ -177,12 +159,29 @@
           }
           document.getElementById("transported").textContent = transportInfo;
 
-          socket.emit("client_to_server", {
-            method: `AES-128 (${transport.toUpperCase()})`,
-            text: base64Xor,
-            encrypted_raw: data.encrypted,
-            key: key,
-          });
+          if (isMonitor) {
+            socket.emit("server_to_client", {
+              method: `AES-128 (${transport.toUpperCase()})`,
+              encrypted_raw: data.encrypted,
+            });
+          } else {
+            socket.emit("client_to_server", {
+              method: `AES-128 (${transport.toUpperCase()})`,
+              text: base64Xor,
+              encrypted_raw: data.encrypted,
+              key: key,
+            });
+          }
+
+          if (window.parent && window.parent.addMessageToChat) {
+            window.parent.addMessageToChat(
+              text,
+              isMonitor ? "SUNUCU" : "SİZ",
+              isMonitor ? "server-msg" : "client-msg",
+              `AES-${transport.toUpperCase()}`,
+              base64Xor
+            );
+          }
 
           textInput.value = "";
         } catch (err) {

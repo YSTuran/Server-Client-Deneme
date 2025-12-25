@@ -89,7 +89,7 @@
         const keyInput = document.getElementById("key");
         const sendBtn = document.getElementById("sendBtn");
 
-        const text = textInput.value;
+        const text = textInput.value.trim();
         const key = keyInput.value.trim();
 
         if (!text || !key) {
@@ -98,18 +98,31 @@
         }
 
         const isMonitor =
-          window.parent && window.parent.location.pathname.includes("monitor");
+          (window.parent &&
+            window.parent.location.pathname.includes("monitor")) ||
+          window.location.pathname.includes("monitor");
 
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: "Columnar Transposition",
             text: text,
           });
+
+          if (window.parent && window.parent.addMessageToChat) {
+            window.parent.addMessageToChat(
+              text,
+              "SUNUCU",
+              "server-msg",
+              "Columnar",
+              "-"
+            );
+          }
           textInput.value = "";
           return;
         }
 
         sendBtn.disabled = true;
+
         const xorText = [...text]
           .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
           .join("");
@@ -117,10 +130,11 @@
 
         if (window.parent && window.parent.addMessageToChat) {
           window.parent.addMessageToChat(
-            base64Text,
+            text,
             "SİZ",
             "client-msg",
-            "Columnar"
+            "Columnar",
+            base64Text
           );
         }
 
@@ -130,6 +144,7 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: base64Text, key: key }),
           });
+
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
 
@@ -140,13 +155,13 @@
           socket.emit("client_to_server", {
             method: "Columnar Transposition",
             text: base64Text,
-            encrypted_raw: data.encrypted,
+            encrypted_raw: data.encrypted, 
             key: key,
           });
 
           textInput.value = "";
         } catch (e) {
-          alert(e.message);
+          alert("Hata: " + e.message);
         } finally {
           sendBtn.disabled = false;
         }

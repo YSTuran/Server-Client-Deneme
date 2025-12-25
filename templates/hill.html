@@ -85,40 +85,18 @@
       async function sendMessage() {
         const textInput = document.getElementById("message");
         const matrixInput = document.getElementById("matrix");
-
         const text = textInput.value.trim();
         const matrix = matrixInput.value.trim();
 
-        if (!text || !matrix) {
-          alert("Eksik bilgi!");
-          return;
-        }
+        if (!text || !matrix) return;
 
         const isMonitor =
           window.parent && window.parent.location.pathname.includes("monitor");
-
-        if (isMonitor) {
-          socket.emit("server_to_client", {
-            method: "Hill Cipher",
-            text: text,
-          });
-          textInput.value = "";
-          return;
-        }
 
         const xorText = [...text]
           .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
           .join("");
         const base64Text = unicodeToBase64(xorText);
-
-        if (window.parent && window.parent.addMessageToChat) {
-          window.parent.addMessageToChat(
-            base64Text,
-            "SİZ",
-            "client-msg",
-            "Hill"
-          );
-        }
 
         try {
           const res = await fetch("/hill/send", {
@@ -128,22 +106,36 @@
           });
 
           const data = await res.json();
-          if (!res.ok) throw new Error(data.error);
 
-          document.getElementById("output").style.display = "block";
-          document.getElementById("encryptedText").textContent = data.encrypted;
-          document.getElementById("decryptedText").textContent = data.decrypted;
+          if (isMonitor) {
+            socket.emit("server_to_client", {
+              method: "Hill (Server)",
+              text: text, 
+              encrypted_raw: data.encrypted,
+            });
+          } else {
+            socket.emit("client_to_server", {
+              method: "Hill",
+              text: base64Text,
+              encrypted_raw: data.encrypted,
+              original: data.decrypted,
+              key: matrix,
+            });
+          }
 
-          socket.emit("client_to_server", {
-            method: "Hill Cipher",
-            text: base64Text,
-            encrypted_raw: data.encrypted,
-            key: matrix,
-          });
+          if (window.parent && window.parent.addMessageToChat) {
+            window.parent.addMessageToChat(
+              text,
+              isMonitor ? "SUNUCU" : "SİZ",
+              isMonitor ? "server-msg" : "client-msg",
+              "Hill+XOR",
+              base64Text
+            );
+          }
 
           textInput.value = "";
         } catch (e) {
-          alert(e.message);
+          console.error("Hata:", e);
         }
       }
     </script>

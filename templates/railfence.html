@@ -89,13 +89,25 @@
         if (!text) return;
 
         const isMonitor =
-          window.parent && window.parent.location.pathname.includes("monitor");
+          (window.parent &&
+            window.parent.location.pathname.includes("monitor")) ||
+          window.location.pathname.includes("monitor");
 
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: "Rail Fence",
             text: text,
           });
+
+          if (window.parent && window.parent.addMessageToChat) {
+            window.parent.addMessageToChat(
+              text,
+              "SUNUCU",
+              "server-msg",
+              "Rail Fence",
+              "-"
+            );
+          }
           msgInput.value = "";
           return;
         }
@@ -108,10 +120,11 @@
 
         if (window.parent && window.parent.addMessageToChat) {
           window.parent.addMessageToChat(
-            base64Text,
+            text,
             "SİZ",
             "client-msg",
-            "Rail Fence"
+            "Rail Fence",
+            base64Text
           );
         }
 
@@ -132,7 +145,7 @@
           socket.emit("client_to_server", {
             method: "Rail Fence",
             text: base64Text,
-            encrypted_raw: data.encrypted,
+            encrypted_raw: data.encrypted, 
             key: keyVal,
           });
 

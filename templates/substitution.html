@@ -91,18 +91,32 @@
         const key = keyInput.value.trim();
 
         if (!text || key.length !== 26) {
-          alert("Eksik bilgi veya hatalı anahtar!");
+          alert(
+            "Lütfen bir metin girin ve 26 karakterlik anahtarın tam olduğundan emin olun!"
+          );
           return;
         }
 
         const isMonitor =
-          window.parent && window.parent.location.pathname.includes("monitor");
+          (window.parent &&
+            window.parent.location.pathname.includes("monitor")) ||
+          window.location.pathname.includes("monitor");
 
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: "Substitution",
             text: text,
           });
+
+          if (window.parent && window.parent.addMessageToChat) {
+            window.parent.addMessageToChat(
+              text,
+              "SUNUCU",
+              "server-msg",
+              "Substitution",
+              "-"
+            );
+          }
           textInput.value = "";
           return;
         }
@@ -115,10 +129,11 @@
 
         if (window.parent && window.parent.addMessageToChat) {
           window.parent.addMessageToChat(
-            base64Text,
+            text,
             "SİZ",
             "client-msg",
-            "Substitution"
+            "Substitution",
+            base64Text
           );
         }
 
@@ -139,12 +154,13 @@
           socket.emit("client_to_server", {
             method: "Substitution",
             text: base64Text,
-            encrypted_raw: data.encrypted,
+            encrypted_raw: data.encrypted, 
             key: key,
           });
 
           textInput.value = "";
         } catch (error) {
+          console.error("Substitution Hatası:", error);
           alert("Hata: " + error.message);
         } finally {
           sendBtn.disabled = false;

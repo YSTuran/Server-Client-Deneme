@@ -90,7 +90,6 @@ SBOX = [
 ]
 
 def _bytes_to_bits(byte_seq):
-    """Return list of bits (MSB-first) for given bytes-like"""
     bits = []
     for b in byte_seq:
         for i in range(8):
@@ -118,7 +117,7 @@ def _left_rotate(bits, n):
     return bits[n:] + bits[:n]
 
 def _set_odd_parity_byte(b):
-    top7 = b & 0xFE  # zero LSB
+    top7 = b & 0xFE 
     ones = bin(top7).count("1")
     parity = 1 if ones % 2 == 0 else 0
     return top7 | parity
@@ -175,7 +174,6 @@ def _f_func(R, K):
     return _permute(out, P)
 
 def _des_block_process(block_bits, subkeys, encrypt=True):
-    """block_bits: list of 64 bits, subkeys: list of 16 subkeys (48-bit lists)"""
     bits = _permute(block_bits, IP)
     L = bits[:32]
     R = bits[32:]
