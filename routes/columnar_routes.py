@@ -27,11 +27,21 @@ def columnar_send():
         original_text = xor_text(xor_text_from_client, SERVER_XOR_KEY)
 
         encrypted = columnar_encrypt(original_text, key)
-        decrypted = columnar_decrypt(encrypted, key)
+        decrypted_plain = columnar_decrypt(encrypted, key)
+
+        decrypted_xor = xor_text(decrypted_plain, SERVER_XOR_KEY)
+        decrypted_safe_packet = base64.b64encode(decrypted_xor.encode()).decode()
+
+        from app import socketio
+        socketio.emit("display_on_server", {
+            "method": "Columnar Transposition",
+            "text": encoded_xor_text,
+            "encrypted": encrypted
+        })
 
         return jsonify({
             "encrypted": encrypted,
-            "decrypted": decrypted
+            "decrypted": decrypted_safe_packet
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

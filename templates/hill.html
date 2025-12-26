@@ -81,6 +81,10 @@
       function unicodeToBase64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));
       }
+      
+      function base64ToUnicode(str) {
+        return decodeURIComponent(escape(window.atob(str)));
+      }
 
       async function sendMessage() {
         const textInput = document.getElementById("message");
@@ -92,6 +96,19 @@
 
         const isMonitor =
           window.parent && window.parent.location.pathname.includes("monitor");
+
+        if (isMonitor) {
+          socket.emit("server_to_client", {
+            method: "Hill",
+            text: text,
+          });
+
+          if (window.parent && window.parent.addMessageToChat) {
+            window.parent.addMessageToChat(text, "SUNUCU", "server-msg", "Hill", "-");
+          }
+          textInput.value = "";
+          return;
+        }
 
         const xorText = [...text]
           .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
@@ -106,29 +123,21 @@
           });
 
           const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
 
-          if (isMonitor) {
-            socket.emit("server_to_client", {
-              method: "Hill (Server)",
-              text: text, 
-              encrypted_raw: data.encrypted,
-            });
-          } else {
-            socket.emit("client_to_server", {
-              method: "Hill",
-              text: base64Text,
-              encrypted_raw: data.encrypted,
-              original: data.decrypted,
-              key: matrix,
-            });
-          }
+          socket.emit("client_to_server", {
+            method: "Hill",
+            text: base64Text,
+            encrypted_raw: data.encrypted,
+            key: matrix,
+          });
 
           if (window.parent && window.parent.addMessageToChat) {
             window.parent.addMessageToChat(
               text,
-              isMonitor ? "SUNUCU" : "SİZ",
-              isMonitor ? "server-msg" : "client-msg",
-              "Hill+XOR",
+              "SİZ",
+              "client-msg",
+              "Hill",
               base64Text
             );
           }
@@ -136,6 +145,7 @@
           textInput.value = "";
         } catch (e) {
           console.error("Hata:", e);
+          alert("Hill Hatası: " + e.message);
         }
       }
     </script>

@@ -36,26 +36,32 @@ def send():
             return jsonify({"error": "Metin 8, anahtar 7 karakter olmalı"}), 400
 
         encrypted = des_encrypt(original_text, key)
-        decrypted = des_decrypt(encrypted, key)
+        decrypted_plain = des_decrypt(encrypted, key)
+
+        decrypted_xor = xor_text(decrypted_plain, SERVER_XOR_KEY)
+        decrypted_safe_packet = base64.b64encode(decrypted_xor.encode()).decode()
 
         response = {
             "encrypted": encrypted,
-            "decrypted": decrypted,
+            "decrypted": decrypted_safe_packet,
             "transport": transport
         }
 
         if transport == "rsa":
             rsa_cipher = rsa_encrypt(encrypted, RSA_PUBLIC_KEY)
-            rsa_plain = rsa_decrypt(rsa_cipher, RSA_PRIVATE_KEY)
             response["transported"] = rsa_cipher
-            response["transport_decrypted"] = rsa_plain
         elif transport == "ecc":
             ecc_payload = ecc_encrypt(encrypted.encode(), ECC_PUBLIC_KEY)
-            ecc_plain = ecc_decrypt(ecc_payload, ECC_PRIVATE_KEY)
             response["transported"] = ecc_payload
-            response["transport_decrypted"] = ecc_plain.decode()
         else:
             response["transported"] = "-"
+
+        from app import socketio
+        socketio.emit("display_on_server", {
+            "method": f"DES ({transport.upper()})",
+            "text": encoded_xor_text,
+            "encrypted": encrypted
+        })
 
         return jsonify(response)
     except Exception as e:

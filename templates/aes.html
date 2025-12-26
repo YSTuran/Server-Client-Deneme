@@ -109,6 +109,9 @@
       function unicodeToBase64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));
       }
+      function base64ToUnicode(str) {
+        return decodeURIComponent(escape(window.atob(str)));
+      }
 
       async function sendData() {
         const textInput = document.getElementById("text");
@@ -116,8 +119,8 @@
         const transportSelect = document.getElementById("transport");
         const btn = document.getElementById("btnSend");
 
-        const text = textInput.value;
-        const key = keyInput.value;
+        const text = textInput.value.trim();
+        const key = keyInput.value.trim();
         const transport = transportSelect.value;
 
         if (!text || !key) {
@@ -137,6 +140,20 @@
           .join("");
         const base64Xor = unicodeToBase64(xorText);
 
+        if (isMonitor) {
+            socket.emit("server_to_client", {
+                method: `AES-128 (${transport.toUpperCase()})`,
+                text: text,
+            });
+
+            if (window.parent && window.parent.addMessageToChat) {
+                window.parent.addMessageToChat(text, "SUNUCU", "server-msg", `AES-${transport.toUpperCase()}`, "-");
+            }
+            textInput.value = "";
+            btn.disabled = false;
+            return;
+        }
+
         try {
           const res = await fetch("/aes/send", {
             method: "POST",
@@ -149,35 +166,28 @@
 
           document.getElementById("output").style.display = "block";
           document.getElementById("encrypted").textContent = data.encrypted;
-          document.getElementById("decrypted").textContent = data.decrypted;
+          document.getElementById("decrypted").textContent = text;
 
           let transportInfo = "-";
           if (transport === "ecc") {
-            transportInfo = `Ciphertext: ${data.transported.ciphertext}\nIV: ${data.transported.iv}\nECC Decrypted: ${data.ecc_decrypted}`;
+            transportInfo = `Ciphertext: ${data.transported.ciphertext}\nIV: ${data.transported.iv}`;
           } else if (transport === "rsa") {
             transportInfo = `RSA Encrypted Key: ${data.transported}`;
           }
           document.getElementById("transported").textContent = transportInfo;
 
-          if (isMonitor) {
-            socket.emit("server_to_client", {
-              method: `AES-128 (${transport.toUpperCase()})`,
-              encrypted_raw: data.encrypted,
-            });
-          } else {
-            socket.emit("client_to_server", {
-              method: `AES-128 (${transport.toUpperCase()})`,
-              text: base64Xor,
-              encrypted_raw: data.encrypted,
-              key: key,
-            });
-          }
+          socket.emit("client_to_server", {
+            method: `AES-128 (${transport.toUpperCase()})`,
+            text: base64Xor,
+            encrypted_raw: data.encrypted,
+            key: key,
+          });
 
           if (window.parent && window.parent.addMessageToChat) {
             window.parent.addMessageToChat(
               text,
-              isMonitor ? "SUNUCU" : "SİZ",
-              isMonitor ? "server-msg" : "client-msg",
+              "SİZ",
+              "client-msg",
               `AES-${transport.toUpperCase()}`,
               base64Xor
             );

@@ -49,16 +49,12 @@ def handle_client_message(data):
     try:
         encrypted_packet = data.get("text")
         method = data.get("method")
-
-        raw_xor = base64.b64decode(encrypted_packet).decode()
-        original_text = xor_text(raw_xor, SERVER_XOR_KEY)
-
         emit(
             "display_on_server",
             {
                 "method": method,
-                "encrypted": encrypted_packet,
-                "original": original_text,
+                "text": encrypted_packet, 
+                "encrypted": data.get("encrypted_raw"), 
             },
             broadcast=True
         )
@@ -68,16 +64,15 @@ def handle_client_message(data):
 
 @socketio.on('server_to_client')
 def handle_server_message(data):
-    original_text = data.get('text')
+    input_text = data.get('text', '')
     method = data.get('method', 'SİSTEM')
 
-    xor_text = "".join([chr(ord(c) ^ 123) for c in original_text])
-    encoded_packet = base64.b64encode(xor_text.encode()).decode()
+    xor_val = "".join([chr(ord(c) ^ 123) for c in input_text])
+    encoded_packet = base64.b64encode(xor_val.encode()).decode()
 
     emit('server_to_client', {
         'method': method,
-        'original': original_text,
-        'encrypted_resp': encoded_packet
+        'encrypted_resp': encoded_packet 
     }, broadcast=True)
 
 if __name__ == "__main__":

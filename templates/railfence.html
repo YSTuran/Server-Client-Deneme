@@ -77,6 +77,9 @@
       function unicodeToBase64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));
       }
+      function base64ToUnicode(str) {
+        return decodeURIComponent(escape(window.atob(str)));
+      }
 
       async function sendMessage() {
         const msgInput = document.getElementById("message");
@@ -96,7 +99,7 @@
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: "Rail Fence",
-            text: text,
+            text: text, 
           });
 
           if (window.parent && window.parent.addMessageToChat) {
@@ -112,11 +115,12 @@
           return;
         }
 
-        sendBtn.disabled = true;
         const xorText = [...text]
           .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
           .join("");
         const base64Text = unicodeToBase64(xorText);
+
+        sendBtn.disabled = true;
 
         if (window.parent && window.parent.addMessageToChat) {
           window.parent.addMessageToChat(
@@ -140,7 +144,7 @@
 
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent = data.encrypted;
-          document.getElementById("decryptedText").textContent = data.decrypted;
+          document.getElementById("decryptedText").textContent = text;
 
           socket.emit("client_to_server", {
             method: "Rail Fence",

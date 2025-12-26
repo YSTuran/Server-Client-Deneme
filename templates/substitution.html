@@ -81,6 +81,9 @@
       function unicodeToBase64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));
       }
+      function base64ToUnicode(str) {
+        return decodeURIComponent(escape(window.atob(str)));
+      }
 
       async function sendMessage() {
         const textInput = document.getElementById("message");
@@ -91,9 +94,7 @@
         const key = keyInput.value.trim();
 
         if (!text || key.length !== 26) {
-          alert(
-            "Lütfen bir metin girin ve 26 karakterlik anahtarın tam olduğundan emin olun!"
-          );
+          alert("Lütfen bir metin girin ve 26 karakterlik anahtarın tam olduğundan emin olun!");
           return;
         }
 
@@ -105,7 +106,7 @@
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: "Substitution",
-            text: text,
+            text: text, 
           });
 
           if (window.parent && window.parent.addMessageToChat) {
@@ -121,11 +122,12 @@
           return;
         }
 
-        sendBtn.disabled = true;
         const xorText = [...text]
           .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
           .join("");
         const base64Text = unicodeToBase64(xorText);
+
+        sendBtn.disabled = true;
 
         if (window.parent && window.parent.addMessageToChat) {
           window.parent.addMessageToChat(
@@ -149,7 +151,7 @@
 
           document.getElementById("output").style.display = "block";
           document.getElementById("encryptedText").textContent = data.encrypted;
-          document.getElementById("decryptedText").textContent = data.decrypted;
+          document.getElementById("decryptedText").textContent = text;
 
           socket.emit("client_to_server", {
             method: "Substitution",

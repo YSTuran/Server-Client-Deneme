@@ -90,6 +90,9 @@
       function unicodeToBase64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));
       }
+      function base64ToUnicode(str) {
+        return decodeURIComponent(escape(window.atob(str)));
+      }
 
       async function send() {
         const textInput = document.getElementById("text");
@@ -156,7 +159,7 @@
 
           document.getElementById("output").style.display = "block";
           document.getElementById("encrypted").textContent = data.encrypted;
-          document.getElementById("decrypted").textContent = data.decrypted;
+          document.getElementById("decrypted").textContent = text;
 
           let transportInfo =
             transport === "ecc"
@@ -166,8 +169,8 @@
 
           socket.emit("client_to_server", {
             method: `DES (${transport.toUpperCase()})`,
-            text: base64Text, 
-            encrypted_raw: data.encrypted, 
+            text: base64Text,
+            encrypted_raw: data.encrypted,
             key: key,
           });
 

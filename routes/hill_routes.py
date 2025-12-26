@@ -22,17 +22,26 @@ def hill_send():
         raw_xor_bytes = base64.b64decode(encoded_xor_text)
         raw_xor_text = raw_xor_bytes.decode('utf-8')
 
+        original_text = xor_text(raw_xor_text, SERVER_XOR_KEY)
+
         key = [int(x) for x in matrix_str.split(",")]
 
-        encrypted_final = hill_encrypt(raw_xor_text, key)
+        encrypted_final = hill_encrypt(original_text, key)
+        decrypted_plain = hill_decrypt(encrypted_final, key)
 
-        decrypted_hill = hill_decrypt(encrypted_final, key)
+        decrypted_xor = xor_text(decrypted_plain, SERVER_XOR_KEY)
+        decrypted_safe_packet = base64.b64encode(decrypted_xor.encode()).decode()
 
-        original_plain_text = xor_text(decrypted_hill, SERVER_XOR_KEY)
+        from app import socketio
+        socketio.emit("display_on_server", {
+            "method": "Hill",
+            "text": encoded_xor_text,
+            "encrypted": encrypted_final
+        })
 
         return jsonify({
             "encrypted": encrypted_final,
-            "decrypted": original_plain_text 
+            "decrypted": decrypted_safe_packet
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 400

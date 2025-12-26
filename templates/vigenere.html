@@ -92,8 +92,15 @@
           return;
         }
 
-        const isMonitor = (window.parent && window.parent.location.pathname.includes("monitor")) || 
-                         window.location.pathname.includes("monitor");
+        const isMonitor =
+          (window.parent &&
+            window.parent.location.pathname.includes("monitor")) ||
+          window.location.pathname.includes("monitor");
+
+        const xorText = [...text]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
+        const base64Text = unicodeToBase64(xorText);
 
         if (isMonitor) {
           socket.emit("server_to_client", {
@@ -101,26 +108,18 @@
             text: text,
           });
 
-          if (window.parent && window.parent.addMessageToChat) {
-              window.parent.addMessageToChat(text, "SUNUCU", "server-msg", "Vigenere", "-");
-          }
           textInput.value = "";
           return;
         }
 
         sendBtn.disabled = true;
 
-        const xorText = [...text]
-          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
-          .join("");
-        const base64Text = unicodeToBase64(xorText);
-
         if (window.parent && window.parent.addMessageToChat) {
           window.parent.addMessageToChat(
-            text, 
-            "SİZ", 
-            "client-msg", 
-            "Vigenere", 
+            text,
+            "SİZ",
+            "client-msg",
+            "Vigenere",
             base64Text
           );
         }
@@ -146,7 +145,7 @@
             key: key,
           });
 
-          textInput.value = ""; 
+          textInput.value = "";
         } catch (error) {
           console.error("Vigenere Hatası:", error);
           alert("Hata: " + error.message);

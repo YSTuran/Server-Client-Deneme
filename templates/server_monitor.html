@@ -262,6 +262,15 @@
       const socket = io();
       const XOR_KEY = 123;
 
+      function base64ToUnicode(str) {
+        try {
+          return decodeURIComponent(escape(window.atob(str)));
+        } catch (e) {
+          console.error("Base64 decode hatası:", e);
+          return str;
+        }
+      }
+
       function loadTool(url, title) {
         const menuBox = document.getElementById("menu-box");
         const backBtn = document.getElementById("back-btn");
@@ -288,11 +297,7 @@
 
       async function sendMessage() {
         const msgInput = document.getElementById("message");
-        if (!msgInput) {
-          console.error("Hata: 'message' ID'li input bulunamadı!");
-          return;
-        }
-
+        if (!msgInput) return;
         const msg = msgInput.value.trim();
         if (!msg) return;
 
@@ -330,8 +335,18 @@
       }
 
       socket.on("display_on_server", (data) => {
+        let decodedText = "[Veri Çözülemedi]";
+        try {
+          const rawXor = base64ToUnicode(data.text);
+          decodedText = [...rawXor]
+            .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+            .join("");
+        } catch (e) {
+          console.log(e);
+        }
+
         addLog(
-          data.original,
+          decodedText,
           "📥 İSTEMCİ",
           "incoming",
           data.method,
@@ -340,12 +355,25 @@
       });
 
       socket.on("server_to_client", (data) => {
+        let originalText = "Undefined";
+        const packet = data.encrypted_resp;
+
+        if (packet) {
+          try {
+            const rawXor = base64ToUnicode(packet);
+            originalText = [...rawXor]
+              .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+              .join("");
+          } catch (e) {
+            console.error("Monitor çözme hatası:", e);
+          }
+        }
         addLog(
-          data.original,
+          originalText,
           "📤 SİZ (SUNUCU)",
           "outgoing",
           data.method,
-          data.encrypted_resp
+          packet 
         );
       });
     </script>

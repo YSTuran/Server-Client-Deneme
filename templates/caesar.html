@@ -87,21 +87,24 @@
       function unicodeToBase64(str) {
         return window.btoa(unescape(encodeURIComponent(str)));
       }
+      function base64ToUnicode(str) {
+        return decodeURIComponent(escape(window.atob(str)));
+      }
 
       async function sendMessage() {
         const msgInput = document.getElementById("message");
         const keyInput = document.getElementById("key");
-        const msg = msgInput.value.trim();
-        const shift = keyInput.value;
 
-        if (!msg || !shift) return;
+        const rawMsg = msgInput.value.trim();
+        const shift = keyInput.value;
+        if (!rawMsg || !shift) return;
 
         const isMonitor =
           (window.parent &&
             window.parent.location.pathname.includes("monitor")) ||
           window.location.pathname.includes("monitor");
 
-        const xor = [...msg]
+        const xor = [...rawMsg]
           .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
           .join("");
         const packet = unicodeToBase64(xor);
@@ -109,52 +112,56 @@
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: "Sezar",
-            text: msg, 
+            text: rawMsg,
           });
 
           if (window.parent && window.parent.addMessageToChat) {
             window.parent.addMessageToChat(
-              msg,
+              rawMsg,
               "SUNUCU",
               "server-msg",
               "Sezar",
               "-"
             );
           }
-        } else {
-          if (window.parent && window.parent.addMessageToChat) {
-            window.parent.addMessageToChat(
-              msg,
-              "SİZ",
-              "client-msg",
-              "Sezar",
-              packet
-            );
-          }
-
-          try {
-            const currentPath = window.location.pathname + "/send";
-            const res = await fetch(currentPath, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text: packet, shift: shift }),
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-
-            socket.emit("client_to_server", {
-              method: "Sezar",
-              text: packet, 
-              encrypted_raw: data.encrypted, 
-            });
-          } catch (e) {
-            console.error("Hata:", e);
-            alert("Şifreleme sırasında hata oluştu!");
-          }
+          msgInput.value = "";
+          return;
         }
 
-        msgInput.value = "";
+        if (window.parent && window.parent.addMessageToChat) {
+          window.parent.addMessageToChat(
+            rawMsg,
+            "SİZ",
+            "client-msg",
+            "Sezar",
+            packet
+          );
+        }
+
+        try {
+          const currentPath = window.location.pathname + "/send";
+          const res = await fetch(currentPath, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text: packet,
+              shift: shift,
+            }),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+
+          socket.emit("client_to_server", {
+            method: "Caesar",
+            text: packet,
+            encrypted_raw: data.encrypted,
+          });
+
+          msgInput.value = "";
+        } catch (e) {
+          console.error("Hata:", e);
+        }
       }
     </script>
   </body>

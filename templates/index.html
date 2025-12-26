@@ -243,6 +243,10 @@
       const socket = io();
       const XOR_KEY = 123;
 
+      function base64ToUnicode(str) {
+        return decodeURIComponent(escape(window.atob(str)));
+      }
+
       function loadTool(url, title) {
         document.getElementById("menu-box").style.display = "none";
         document.getElementById("back-btn").style.display = "inline-block";
@@ -262,18 +266,32 @@
         frame.src = "";
       }
 
-      window.addMessageToChat = function (text, label, type, method) {
+      window.addMessageToChat = function (
+        text,
+        label,
+        type,
+        method,
+        encryptedRaw = "-"
+      ) {
         const win = document.getElementById("chat-window");
         const div = document.createElement("div");
         div.className = `bubble ${type}`;
+        let packetInfo = "";
+        if (type === "server-msg" && encryptedRaw !== "-") {
+          packetInfo = `<div style="font-size:10px; color:#ccc; margin-bottom:2px;">${encryptedRaw.substring(
+            0,
+            20
+          )}...</div>`;
+        }
         const contentLabel =
           type === "client-msg" ? "Şifreli Paket:" : "Mesaj:";
 
         div.innerHTML = `
         <span class="tag">${label} [${method}]</span>
+        ${packetInfo}
         <div style="word-break:break-all;"><strong>${contentLabel}</strong> ${text}</div>
         <span class="meta">${new Date().toLocaleTimeString()}</span>
-    `;
+        `;
         win.appendChild(div);
         win.scrollTop = win.scrollHeight;
       };
@@ -282,11 +300,18 @@
         const packet = data.encrypted_resp;
         if (packet) {
           try {
-            const rawXor = atob(packet);
+            const rawXor = base64ToUnicode(packet);
             const decoded = [...rawXor]
               .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
               .join("");
-            addMessageToChat(decoded, "SUNUCU", "server-msg", data.method);
+
+            addMessageToChat(
+              decoded,
+              "SUNUCU",
+              "server-msg",
+              data.method,
+              packet
+            );
           } catch (e) {
             console.error("Çözme hatası:", e);
           }

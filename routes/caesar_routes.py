@@ -18,16 +18,30 @@ def page():
 @caesar_bp.route("/caesar/send", methods=["POST"])
 def caesar_send():
     data = request.get_json()
-    encoded = data.get("text")
+    encoded = data.get("text") 
     shift = int(data.get("shift"))
 
-    raw_xor = base64.b64decode(encoded).decode()
-    original = xor_text(raw_xor, SERVER_XOR_KEY)
+    try:
+        raw_xor = base64.b64decode(encoded).decode()
+        original = xor_text(raw_xor, SERVER_XOR_KEY)
 
-    encrypted = caesar_encrypt(original, shift)
-    decrypted = caesar_decrypt(encrypted, shift)
+        encrypted = caesar_encrypt(original, shift)
+        decrypted_plain = caesar_decrypt(encrypted, shift)
 
-    return jsonify({
-        "encrypted": encrypted,
-        "decrypted": decrypted
-    })
+        decrypted_xor = xor_text(decrypted_plain, SERVER_XOR_KEY)
+        decrypted_safe_packet = base64.b64encode(decrypted_xor.encode()).decode()
+
+        from app import socketio 
+        socketio.emit("display_on_server", {
+            "method": "Sezar",
+            "text": encoded,
+            "encrypted": encrypted
+        })
+
+        return jsonify({
+            "encrypted": encrypted,
+            "decrypted": decrypted_safe_packet,
+            "packet_trace": encoded 
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

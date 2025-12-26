@@ -26,11 +26,21 @@ def polybius_send():
         original_text = xor_text(xor_text_from_client, SERVER_XOR_KEY)
 
         encrypted = polybius_encrypt(original_text)
-        decrypted = polybius_decrypt(encrypted)
+        decrypted_plain = polybius_decrypt(encrypted)
+
+        decrypted_xor = xor_text(decrypted_plain, SERVER_XOR_KEY)
+        decrypted_safe_packet = base64.b64encode(decrypted_xor.encode()).decode()
+
+        from app import socketio
+        socketio.emit("display_on_server", {
+            "method": "Polybius Cipher",
+            "text": encoded_xor_text,
+            "encrypted": encrypted
+        })
 
         return jsonify({
             "encrypted": encrypted,
-            "decrypted": decrypted
+            "decrypted": decrypted_safe_packet
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

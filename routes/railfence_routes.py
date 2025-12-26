@@ -33,11 +33,21 @@ def railfence_send():
         original_text = xor_text(xor_text_from_client, SERVER_XOR_KEY)
 
         encrypted = railfence_encrypt(original_text, rails)
-        decrypted = railfence_decrypt(encrypted, rails)
+        decrypted_plain = railfence_decrypt(encrypted, rails)
+
+        decrypted_xor = xor_text(decrypted_plain, SERVER_XOR_KEY)
+        decrypted_safe_packet = base64.b64encode(decrypted_xor.encode()).decode()
+
+        from app import socketio
+        socketio.emit("display_on_server", {
+            "method": "Rail Fence",
+            "text": encoded_xor_text,
+            "encrypted": encrypted
+        })
 
         return jsonify({
             "encrypted": encrypted,
-            "decrypted": decrypted
+            "decrypted": decrypted_safe_packet
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

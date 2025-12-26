@@ -26,7 +26,7 @@ def send():
     if not data:
         return jsonify({"error": "JSON body yok"}), 400
 
-    encoded_xor_text = data.get("text", "") # İstemciden gelen Base64+XOR'lu metin
+    encoded_xor_text = data.get("text", "") 
     key = data.get("key", "")
     transport = data.get("transport", "none")
 
@@ -36,14 +36,17 @@ def send():
         original_text = xor_text(raw_xor_text, SERVER_XOR_KEY)
 
         if len(original_text) != 16 or len(key) != 16:
-            return jsonify({"error": f"Metin ve anahtar 16 karakter olmalı! (Gelen: {len(original_text)})"}), 400
+            return jsonify({"error": f"Metin ve anahtar 16 karakter olmalı!"}), 400
 
         encrypted = aes_encrypt(original_text, key)
-        decrypted = aes_decrypt(encrypted, key)
+        decrypted_plain = aes_decrypt(encrypted, key)
+
+        decrypted_xor = xor_text(decrypted_plain, SERVER_XOR_KEY)
+        decrypted_safe_packet = base64.b64encode(decrypted_xor.encode()).decode()
 
         response = {
             "encrypted": encrypted,
-            "decrypted": decrypted,
+            "decrypted": decrypted_safe_packet,
             "transport": transport
         }
 
@@ -51,9 +54,14 @@ def send():
             response["transported"] = rsa_encrypt(encrypted, RSA_PUBLIC_KEY)
         elif transport == "ecc":
             ecc_payload = ecc_encrypt(encrypted.encode("utf-8"), ECC_PUBLIC_KEY)
-            ecc_plain = ecc_decrypt(ecc_payload, ECC_PRIVATE_KEY)
             response["transported"] = ecc_payload
-            response["ecc_decrypted"] = ecc_plain.decode("utf-8")
+
+        from app import socketio
+        socketio.emit("display_on_server", {
+            "method": f"AES-128 ({transport.upper()})",
+            "text": encoded_xor_text, 
+            "encrypted": encrypted 
+        })
 
         return jsonify(response)
 
