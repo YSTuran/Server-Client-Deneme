@@ -64,16 +64,23 @@ def handle_client_message(data):
 
 @socketio.on('server_to_client')
 def handle_server_message(data):
-    input_text = data.get('text', '')
+    encrypted_packet = data.get('text', '')
     method = data.get('method', 'SİSTEM')
 
-    xor_val = "".join([chr(ord(c) ^ 123) for c in input_text])
-    encoded_packet = base64.b64encode(xor_val.encode()).decode()
+    try:
+        raw_xor = base64.b64decode(encrypted_packet).decode()
+        original_text = "".join([chr(ord(c) ^ 123) for c in raw_xor])
 
-    emit('server_to_client', {
-        'method': method,
-        'encrypted_resp': encoded_packet 
-    }, broadcast=True)
+        response_text = original_text 
+        xor_val = "".join([chr(ord(c) ^ 123) for c in response_text])
+        encoded_resp = base64.b64encode(xor_val.encode()).decode()
+        emit('server_to_client', {
+            'method': method,
+            'encrypted_resp': encoded_resp 
+        }, broadcast=True)
+        
+    except Exception as e:
+        print(f"Sunucu İşleme Hatası: {e}")
 
 if __name__ == "__main__":
     local_ip = socket.gethostbyname(socket.gethostname())

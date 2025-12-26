@@ -121,7 +121,7 @@
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: `DES (${transport.toUpperCase()})`,
-            text: text, 
+            text: base64Text, 
           });
 
           if (window.parent && window.parent.addMessageToChat) {

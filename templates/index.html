@@ -276,22 +276,25 @@
         const win = document.getElementById("chat-window");
         const div = document.createElement("div");
         div.className = `bubble ${type}`;
+
         let packetInfo = "";
-        if (type === "server-msg" && encryptedRaw !== "-") {
-          packetInfo = `<div style="font-size:10px; color:#ccc; margin-bottom:2px;">${encryptedRaw.substring(
+        if (encryptedRaw !== "-") {
+          packetInfo = `<div style="font-size:10px; color:#ccc; margin-bottom:2px;">Paket: ${encryptedRaw.substring(
             0,
             20
           )}...</div>`;
         }
+
         const contentLabel =
           type === "client-msg" ? "Şifreli Paket:" : "Mesaj:";
 
         div.innerHTML = `
-        <span class="tag">${label} [${method}]</span>
-        ${packetInfo}
-        <div style="word-break:break-all;"><strong>${contentLabel}</strong> ${text}</div>
-        <span class="meta">${new Date().toLocaleTimeString()}</span>
+          <span class="tag">${label} [${method}]</span>
+          ${packetInfo}
+          <div style="word-break:break-all;"><strong>${contentLabel}</strong> ${text}</div>
+          <span class="meta">${new Date().toLocaleTimeString()}</span>
         `;
+
         win.appendChild(div);
         win.scrollTop = win.scrollHeight;
       };
@@ -305,7 +308,7 @@
               .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
               .join("");
 
-            addMessageToChat(
+            window.addMessageToChat(
               decoded,
               "SUNUCU",
               "server-msg",

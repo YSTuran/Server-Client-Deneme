@@ -113,7 +113,7 @@
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: "Columnar Transposition",
-            text: text, 
+            text: base64Text, 
           });
 
           if (window.parent && window.parent.addMessageToChat) {

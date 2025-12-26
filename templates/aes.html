@@ -141,17 +141,23 @@
         const base64Xor = unicodeToBase64(xorText);
 
         if (isMonitor) {
-            socket.emit("server_to_client", {
-                method: `AES-128 (${transport.toUpperCase()})`,
-                text: text,
-            });
+          socket.emit("server_to_client", {
+            method: `AES-128 (${transport.toUpperCase()})`,
+            text: base64Xor,
+          });
 
-            if (window.parent && window.parent.addMessageToChat) {
-                window.parent.addMessageToChat(text, "SUNUCU", "server-msg", `AES-${transport.toUpperCase()}`, "-");
-            }
-            textInput.value = "";
-            btn.disabled = false;
-            return;
+          if (window.parent && window.parent.addMessageToChat) {
+            window.parent.addMessageToChat(
+              text,
+              "SUNUCU",
+              "server-msg",
+              `AES-${transport.toUpperCase()}`,
+              "-"
+            );
+          }
+          textInput.value = "";
+          btn.disabled = false;
+          return;
         }
 
         try {

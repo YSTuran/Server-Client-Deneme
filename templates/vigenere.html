@@ -105,7 +105,7 @@
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: "Vigenere Cipher",
-            text: text,
+            text: base64Text,
           });
 
           textInput.value = "";

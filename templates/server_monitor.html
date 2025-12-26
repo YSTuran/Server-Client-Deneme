@@ -301,9 +301,14 @@
         const msg = msgInput.value.trim();
         if (!msg) return;
 
+        const xorText = [...msg]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
+        const base64Text = unicodeToBase64(xorText);
+
         socket.emit("server_to_client", {
           method: "SİSTEM",
-          text: msg,
+          text: base64Text,
         });
 
         msgInput.value = "";
@@ -373,7 +378,7 @@
           "📤 SİZ (SUNUCU)",
           "outgoing",
           data.method,
-          packet 
+          packet
         );
       });
     </script>

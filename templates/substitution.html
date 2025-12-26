@@ -103,10 +103,15 @@
             window.parent.location.pathname.includes("monitor")) ||
           window.location.pathname.includes("monitor");
 
+        const xorText = [...text]
+          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
+          .join("");
+        const base64Text = unicodeToBase64(xorText);
+
         if (isMonitor) {
           socket.emit("server_to_client", {
             method: "Substitution",
-            text: text, 
+            text: base64Text, 
           });
 
           if (window.parent && window.parent.addMessageToChat) {
@@ -121,11 +126,6 @@
           textInput.value = "";
           return;
         }
-
-        const xorText = [...text]
-          .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
-          .join("");
-        const base64Text = unicodeToBase64(xorText);
 
         sendBtn.disabled = true;
 
